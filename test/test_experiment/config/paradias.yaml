@@ -1,0 +1,63 @@
+---
+root_dir: "test/test_experiment"
+
+samples_mzml: "samples/scans_mzml"
+samples_csv: "samples/scans_csv"
+samples_adjusted_swaths: "samples/151029_csv_adjusted"
+slices_location:  "samples/151029_csv_slices"
+
+swath_windows: "swath_isolation_windows.csv"
+swath_windows_adjusted: "swath_isolation_windows_adjusted.csv"
+
+min_scan_intensity: 1
+window_size_sec: 60
+mass_tol_ppm: 40
+
+avg_peak_fwhm_sec: 12
+
+database:  "db/scerevisiae_uniprot_20181004.fasta"
+decoy_database: "db/scerevisiae_uniprot_20181004_decoys.fasta"
+mixed_database: "db/scerevisiae_uniprot_20181004_incl_decoys.fasta"
+decoy_prefix: "decoy_"
+
+parafac_init:  "random"
+parafac_max_iter: 5000
+parafac_min_comp:  10
+parafac_max_comp:  90
+parafac_backend: "pytorch"
+parafac_avail_ram_gb: 32
+log_dir: ""
+tmp_dir: "$TMPDIR"
+
+model_index: "model_index.feather"
+spectrum_index: "spectrum_index.feather"
+
+analysis_pipeline: "crux"
+
+msgf_modifications: "config/msgf_mods.txt"
+msgf_threads: 18
+
+decomp_measures: "results/parafac_decomp_measures.feather"
+time_modes_values: "results/time_mode_values_all_models.feather"
+
+intensity_lower_percentage_cutoff: 1
+
+best_models: "results/best_models_acc_to_unimodality.csv"
+best_models_mzxml: "results/best_models_acc_to_unimodality.mzXML"
+best_models_crux_out_dir: "results/crux-output-concat-unimodal"
+
+percolator_fdr: 0.05
+diaumpire_out_dir: "results/diaumpire_out"
+diaumpire_paramfile: "results/diaumpire_se.params"
+diaumpire_library: "results/diaumpire_out/diaumpire_library_openswath.tsv"
+
+quant_library_dir: "results/library"
+quant_library: "results/library/best_models_library_openswath.tsv"
+quant_lib_mayu_fdr: 0.1
+lower_mz_frag: 100
+upper_mz_frag: 2000
+quant_library_spectrast_max_frag_annot_err: 0.05
+
+sequencer: "novor"
+novor_param_file: "config/novor_params.txt"
+sequencer_output_file: "results/denovo_seq_results_novor.tsv"

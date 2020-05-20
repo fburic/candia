@@ -1,0 +1,96 @@
+diff --git a/deepnovo_main_modules.py b/deepnovo_main_modules.py
+index a448f87..108fbfe 100644
+--- a/deepnovo_main_modules.py
++++ b/deepnovo_main_modules.py
+@@ -105,28 +105,24 @@ def read_spectra(file_handle, data_format, spectra_locations):
+     # READ AN ENTRY
+     if data_format == "mgf":
+ 
+-      # header TITLE
+-      line = file_handle.readline()
+-
+-      # header PEPMASS
+-      line = file_handle.readline()
+-      peptide_ion_mz = float(re.split('=|\n', line)[1])
+-
+-      # header CHARGE
+-      line = file_handle.readline()
+-      charge = float(re.split('=|\+', line)[1]) # pylint: disable=anomalous-backslash-in-string,line-too-long
+-
+-      # header SCANS
+-      line = file_handle.readline()
+-      #~ scan = int(re.split('=', line)[1])
+-      scan = re.split('=|\n', line)[1]
+-
+-      # header RTINSECONDS
+       line = file_handle.readline()
++      raw_sequence = ''
++      while '=' in line:
++        line = line.split('=')
++        if line[0] == 'TITLE':
++          pass
++        elif line[0] == 'PEPMASS':
++          peptide_ion_mz = float(line[1])
++        elif line[0] == 'CHARGE':
++          charge = float(line[1].split('+')[0])
++        elif line[0] == 'SCANS':
++          scan = line[1].split('\n')[0]
++        elif line[0] == 'RTINSECONDS':
++          pass
++        elif line[0] == 'SEQ':
++          raw_sequence = line[1].rstrip()
++        line = file_handle.readline()
+ 
+-      # header SEQ
+-      line = file_handle.readline()
+-      raw_sequence = re.split('=|\n|\r', line)[1]
+       raw_sequence_len = len(raw_sequence)
+       peptide = []
+       index = 0
+@@ -204,7 +200,7 @@ def read_spectra(file_handle, data_format, spectra_locations):
+       line = file_handle.readline()
+       while not "END IONS" in line:
+         # parse pairs of "mz intensity"
+-        mz, intensity = re.split(' |\n', line)[:2]
++        mz, intensity = line.rstrip().split(' ')
+         intensity_float = float(intensity)
+         mz_float = float(mz)
+         if mz_float > deepnovo_config.MZ_MAX: # skip this peak
+@@ -214,6 +210,10 @@ def read_spectra(file_handle, data_format, spectra_locations):
+         spectrum_intensity.append(intensity_float)
+         line = file_handle.readline()
+ 
++    # Skip if couldn't read current spectrum
++    if not spectrum_intensity:
++      continue 
++        
+     # AN ENTRY FOUND
+     counter += 1
+     if counter % 10000 == 0:
+@@ -343,8 +343,9 @@ def read_spectra(file_handle, data_format, spectra_locations):
+   print("  total peptide skipped by mass precision %d"
+         % counter_skipped_mass_precision)
+ 
+-  print("  average #peaks per spectrum %.1f" % (avg_peak_count/counter))
+-  print("  average peptide length %.1f" % (avg_peptide_len/counter))
++  if counter > 0:
++    print("  average #peaks per spectrum %.1f" % (avg_peak_count/counter))
++    print("  average peptide length %.1f" % (avg_peptide_len/counter))
+ 
+   return data_set, counter
+ 
+@@ -2037,9 +2038,13 @@ def decode(input_file=deepnovo_config.decode_test_file):
+           for stack in spectra_file_location_stack_list:
+ 
+             start_time = time.time()
+-            stack_data_set, _ = read_spectra(input_file_handle,
++            stack_data_set, counter = read_spectra(input_file_handle,
+                                              deepnovo_config.data_format,
+                                              stack)
++            # Skip this stack if it's empty
++            if counter == 0:
++              continue
++
+             counter_peptide += len(stack)
+             print("Read {0:d}/{1:d} spectra, reading time = {2:.2f}".format(
+                 counter_peptide,
