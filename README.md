@@ -14,10 +14,11 @@ This repository holds the PARADIAS scripts that produced the results in the bioR
 
 We recommend using a conda environment to set up all dependencies.
 One can be built from scratch using the provided `paradias_env.yaml` specification file
-or a Docker image with all dependencies can be used from <TODO>. 
+or a Docker image with all dependencies can be used from (TODO). 
 Alternatively, a Docker image may be built using the provided `Dockerfile`.
 
-Here, commands will be shown with the Docker alternative since it has the extra step of running a container.
+Here, commands will be shown with the Docker alternative since it has the extra step of
+running a container.
 
 ## Usage
 
@@ -31,10 +32,13 @@ These times will of course vary depending on the available resources.
 Actual running times for the test experiment should be exceedingly short.
 
 We recommend running the pipeline on a workstation with multiple cores or 
-a high-performance computing (HPC) environment. Currently, the HPC manager `slurm` is provided.
+a high-performance computing (HPC) environment. Currently, the HPC manager `slurm`
+is supported. A conda environment is also assumed to be present on the cluster.
+A Singularity recipe to encapsulate the environment is provided. 
 
 An NVIDIA GPU card is required for the decomposition.
 Partial support for CPU-only execution is implemented but the performance becomes infeasible.
+
 
 ### 0. Configure PARADIAS execution
 
@@ -45,9 +49,11 @@ as well as algorithm parameters. The paths are interpreted as relative to the
 experiment directory `root_dir`.
 
 Please read through the next steps to see which parameters are relevant at each step.
-A full configuration file is provided in the test experiment.
+A full configuraiton file is provided in the test experiment.
 
-### 1. Convert DIA scan files from mzML to CSV
+The scripts are expected to be run from the PARADIAS top-level directory.
+
+###  1. Convert DIA scan files from mzML to CSV
 
 > Expected running time: 3-5 minutes per file
 
@@ -72,6 +78,7 @@ docker run --mount type=bind,source="$(pwd)"/test/test_experiment,target=/app/te
     snakemake -s scripts/util/mzml2csv.Snakefile --configfile ${configfile}
 ```
 
+
 ### 2. Adjust precursor isolation windows
 
 We cannot have overlapping isolation windows, so the bounds are adjusted.
@@ -91,6 +98,7 @@ docker run --mount type=bind,source="$(pwd)"/test/test_experiment,target=/app/te
     snakemake --forceall -s scripts/util/adjust_swaths.Snakefile --configfile  ${configfile}
 ```
 
+
 ### 3. Split samples into slices
 
 The input scans are partitioned into swaths and RT windows of width `window_size_sec`.
@@ -108,6 +116,7 @@ Relevant pipeline config values:
 docker run --mount type=bind,source="$(pwd)"/test/test_experiment,target=/app/test/test_experiment paradias:test \
     python scripts/util/split_csv_maps_to_slices.py --config ${configfile}
 ```
+
 
 ## 4. Generate tensor files for all slices
 
@@ -138,28 +147,64 @@ snakemake --jobs 200 -s scripts/util/generate_slice_tensors.Snakefile \
   --cluster "sbatch -A {account.number} -t 06:00:00 --ntasks 6"
 ```
 
+
 ## 5. Run PARAFAC decomposition
 
-TODO: expand, clarify
+A decomposition is performed on each slice tensor, for all number of components `F`
+in the configured range. Multiple tensors are decomposed in parallel on each available GPU card.
+If multiple GPUs ara available, the set of input tensors is partitioned evenly between the cards.
+
+Note that while the scripts below require a GPU, the decomposition script itself 
+`scripts/parafac/decompose_parafac.py` may be run on CPUs if executed without the `--use_gpu` flag. 
+
+Relevant pipeline config values:
+
+* `parafac_*` - decomposition parameters
+* `parafac_min_comp` - Lower bound of the number of components `F` to decompose for
+* `parafac_max_comp` - Upper bound of the number of components `F` to decompose for
 
 > Expected running time: 6 - 12 hours (depending on the GPU model)
 
+The workstation command has the syntax:
+
+`scripts/parafac/decompose_workstation.sh  EXPERIMENT_CONFIG_FILE N_PARALLEL_DECOMP_PER_GPU [SNAKEMAKE_OPTIONS]`
+
 ```bash
-sbatch --array=0-1 --gres=gpu:1 --time 48:00:00 \
-    parafac/decompose_cluster_singularity.sh ${snake_configfile}
+docker run \
+    --mount type=bind,source="$(pwd)"/test/test_experiment,target=/app/test/test_experiment \
+    --mount type=bind,source=/usr/bin,target=/opt/usr/bin,readonly \
+    paradias:test scripts/parafac/decompose_workstation.sh "${configfile}" 2
 ```
 
+The cluster command has the syntax:
+
+`scripts/parafac/decompose_cluster.sh ${snake_configfile} N_PARALLEL_DECOMP_PER_GPU`
+
+And is designed to be run as an array job:
+
+```bash
+sbatch --array=0-1 --gres=gpu:1 --time 24:00:00 \
+    scripts/parafac/decompose_cluster.sh "${configfile}" 6
+```
+
+or using `decomopse_cluster_singularity.sh` should you prefer to use a Singularity image.
+The image should be named `parafac.simg`. 
+
+
 ## 6. Index all PARAFAC models and components
-
+ 
 This is a necessary step for downstream analysis. It assigns a unique ID to each
-PARAFAC model and components.
-
+PARAFAC model and component, as well as record the filenames of all tensor models.
+ 
 TODO: expand, clarify
+
+The cluster command is;
 
 ```bash
 sbatch --time 00:20:00 --ntasks 1 --cpus-per-task 30 \
-    run_python.sh parafac/models.py -c ${configfile}
+    run_python.sh scripts/parafac/models.py -c ${configfile}
 ```
+
 
 ## 7. Select Best Models
 
@@ -169,14 +214,15 @@ First, collect the time modes and measure unimodality fractions.
 
 ```bash
 sbatch --ntasks 1 --cpus-per-task 32 \
-    run_python.sh parafac/collect_time_mode_values.py -c ${configfile}
+    run_python.sh scripts/parafac/collect_time_mode_values.py -c ${configfile}
 ```
 
 Then, select models:
 
 ```bash
-sbatch parafac/select_best_models.sh -c ${configfile}
+scripts/parafac/select_best_models.sh -c ${configfile}
 ```
+
 
 ## 8. Identify proteins using Crux or MS-GF+
 
@@ -186,24 +232,27 @@ TODO: expand, clarify
 
 ```bash
 sbatch -t 04:00:00 \
-    run_python.sh parafac/id_models_concat.py -c ${configfile}
+    run_python.sh scripts/parafac/id_models_concat.py -c ${configfile}
 ```
+
 
 ## 9. Build library
 
 TODO: expand, clarify
 
 ```bash
-snakemake -s quantification/build_library.Snakefile --configfile ${configfile}
+snakemake -s scripts/quantification/build_library.Snakefile --configfile ${configfile}
 ```
+
 
 ## 10. Quantify proteins with DIA-NN
 
 TODO: expand, clarify
 
 ```bash
-sbatch quantification/diann_slurm.sh --configfile ${configfile}
+sbatch scripts/quantification/diann_slurm.sh --configfile ${configfile}
 ```
+
 
 ## 11. De novo sequencing with Novor and DeepNovo
 
@@ -212,5 +261,5 @@ Configure which tool to use through the configuration file
 TODO: expand, clarify
 
 ```bash
-snakemake -s denovo/sequence_best_models.Snakefile --configfile ${configfile}
+snakemake -s scripts/denovo/sequence_best_models.Snakefile --configfile ${configfile}
 ```

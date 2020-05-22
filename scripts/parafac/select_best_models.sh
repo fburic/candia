@@ -6,9 +6,4 @@
 
 set -eo pipefail
 
-if [[ $(hostname) == "vera"* ]]; then
-    source deactivate
-    module load iccifort/2018.3.222-GCC-7.3.0-2.30 impi/2018.3.222 R/3.5.1
-fi
-
-time Rscript parafac_tensorly/select_best_models.R $*
+time Rscript scripts/parafac/select_best_models.R $*

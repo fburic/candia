@@ -14,6 +14,7 @@ RUN apt-get install -y libgomp1 \
     && echo "source activate" > ~/.bashrc
 
 ENV PATH /opt/conda/bin:$PATH
+ENV PATH /opt/usr/bin:$PATH
 
 WORKDIR /app
 COPY scripts /app/scripts

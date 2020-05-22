@@ -2,11 +2,11 @@
 
 if [ "$#" -lt 2 ]; then
     echo "[ERROR] Correct syntax:"
-	echo "\t" $0 " EXPERIMENT_CONFIG_FILE N_PARALLEL_DECOMP_PER_GPU [SNAKEMAKE_OPTIONS]"
+	echo $0 " EXPERIMENT_CONFIG_FILE N_PARALLEL_DECOMP_PER_GPU [SNAKEMAKE_OPTIONS]"
 	exit 1
 fi
 
-N_CARDS=2
+N_CARDS=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
 
 
 start_partition_on_device () {
@@ -18,7 +18,7 @@ start_partition_on_device () {
     nvidia-cuda-mps-control -d && printf '\n%s\n' "INFO: MPS daemon started on device ${device}"
 
     snakemake -p --nolock --forceall --keep-going -j $2 \
-      -s parafac_tensorly/decompose_parafac.Snakefile \
+      -s scripts/parafac/decompose_parafac.Snakefile \
       --config npartitions=${N_CARDS} partition=${device} pipe_id=${device} $3 \
       --configfile $1
 

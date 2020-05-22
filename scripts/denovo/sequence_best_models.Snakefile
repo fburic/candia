@@ -50,7 +50,7 @@ rule sequencer:
             output_dir = os.path.dirname(os.path.abspath(str(input)))
             output_file = os.path.basename(str(output))
             shell('set +u ; source deactivate && source activate deepnovo ; export DEEPNOVO_INPUT={input_path} '
-                  '&& pushd /home/fburic/software/DeepNovo '
+                  '&& pushd ${{USER}}/software/DeepNovo '
                   '&& python deepnovo_main.py --train_dir train.example --decode --beam_search --beam_size 5 '
                   '&& cp train.example/decode_output.tab {output_dir}/{output_file} '
                   '&& popd '

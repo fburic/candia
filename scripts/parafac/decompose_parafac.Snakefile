@@ -58,7 +58,7 @@ rule decompose_slice_gpu:
     shell:
         """
         set +e
-        python parafac_tensorly/decompose_parafac.py \
+        python scripts/parafac/decompose_parafac.py \
         --input_tensor_file {params.tensor} \
         --tensor_properties $(dirname {params.tensor})/tensor_properties.json \
         --init {config[parafac_init]} \

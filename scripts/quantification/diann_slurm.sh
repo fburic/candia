@@ -5,5 +5,5 @@
 #SBATCH --output='diann-%j.out'
 #SBATCH --error='diann-%j.err'
 
-snakemake -p --forceall -s quantification/diann.Snakefile $*
+snakemake -p --forceall -s scripts/quantification/diann.Snakefile $*
 
