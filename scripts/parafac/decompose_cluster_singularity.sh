@@ -17,7 +17,7 @@ N_PAR_DECOMP=$2
 # Working on a shared machine, so careful to use a unique MPS pipe
 pipe_id=$(uuidgen)
 
-singularity exec --nv parafac_tensorly/parafac.simg /bin/bash -c \
+singularity exec --nv paradias.sif /bin/bash -c \
   "CUDA_VISIBLE_DEVICES=0 \
   && source scripts/parafac/start_mps.sh ${pipe_id} \
   && snakemake -j ${N_PAR_DECOMP} --nolock --forceall --keep-going \
