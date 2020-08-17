@@ -1,4 +1,4 @@
-# CANDIA: Parallel factor analysis of Data-Independent-Acquired Spectra
+# CANDIA: Canonical Decomposition of Data-Independent-Acquired Spectra
 
 ![logo](paradias_logo.png)
 
