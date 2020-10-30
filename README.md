@@ -20,7 +20,7 @@ Alternatively, the image may be built from the supplied `candia.def` file
 To download the image from either location:
 
 * Singularity Hub: `singularity pull shub://fburic/candia:latest`
-* Sylabs Cloud: `singularity pull library://fburic/default/candia` 
+* Sylabs Cloud: `singularity pull library://fburic/candia/candia` 
 
 A conda environment can also be built from scratch using the provided `candia_env.yaml`
 specification file. Here, commands will be shown using the Singularity image.
