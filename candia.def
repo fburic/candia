@@ -2,7 +2,7 @@ Bootstrap: docker
 From: continuumio/miniconda3
 
 %files
-	paradias_env.yaml
+    candia_env.yaml
     
 %post
     mkdir -p /cephyr
@@ -16,8 +16,8 @@ From: continuumio/miniconda3
     touch /usr/lib64/libvglfaker.so
     touch /usr/bin/nvidia-smi
 
-	/opt/conda/bin/conda update conda    # https://github.com/conda/conda/issues/9681
-    /opt/conda/bin/conda env update --name base --file paradias_env.yaml --prune
+    /opt/conda/bin/conda update conda    # https://github.com/conda/conda/issues/9681
+    /opt/conda/bin/conda env update --name base --file candia_env.yaml --prune
 	
 
 %runscript

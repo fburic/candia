@@ -1,6 +1,6 @@
 # CANDIA: Canonical Decomposition of Data-Independent-Acquired Spectra
 
-![logo](paradias_logo.png)
+![logo](candia_logo.png)
 
 CANDIA is a GPU-powered unsupervised multiway factor analysis framework that deconvolves multispectral scans to individual analyte spectra, chromatographic profiles, and sample abundances, using the PARAFAC (or canonical decomposition) method. The deconvolved spectra can be annotated with traditional database search engines or used as a high-quality input for *de novo* sequencing methods.
 
@@ -12,13 +12,18 @@ This repository holds the CANDIA scripts that produced the results in the bioRxi
 
 ## Dependencies
 
-We recommend using a conda environment to set up all dependencies.
-One can be built from scratch using the provided `paradias_env.yaml` specification file
-or a Docker image with all dependencies can be used from (TODO). 
-Alternatively, a Docker image may be built using the provided `Dockerfile`.
+We recommend using the Singularity image provided on Singularity Hub or Sylabs Cloud,
+which contains a conda environment with all CANDIA dependencies.
+Alternatively, the image may be built from the supplied `candia.def` file 
+(requires root permissions).
 
-Here, commands will be shown with the Docker alternative since it has the extra step of
-running a container.
+To download the image from either location:
+
+* Singularity Hub: `singularity pull shub://fburic/candia:latest`
+* Sylabs Cloud: `singularity pull library://fburic/default/candia` 
+
+A conda environment can also be built from scratch using the provided `candia_env.yaml`
+specification file. Here, commands will be shown using the Singularity image.
 
 ## Usage
 
@@ -43,7 +48,7 @@ Partial support for CPU-only execution is implemented but the performance become
 ### 0. Configure CANDIA execution
 
 The execution of the pipeline is configured through a YAML file
-(`test_experiment/config/paradias.yaml`). 
+(`test_experiment/config/candia.yaml`). 
 This configuration file specifies the location of input and intermediate files,
 as well as algorithm parameters. The paths are interpreted as relative to the 
 experiment directory `root_dir`.
@@ -72,9 +77,9 @@ It should automatically use all available cores.
 Commands:
 
 ```bash
-configfile='test/test_experiment/config/paradias.yaml'
+configfile='test/test_experiment/config/candia.yaml'
 
-docker run --mount type=bind,source="$(pwd)"/test/test_experiment,target=/app/test/test_experiment paradias:test \
+docker run --mount type=bind,source="$(pwd)"/test/test_experiment,target=/app/test/test_experiment candia:test \
     snakemake -s scripts/util/mzml2csv.Snakefile --configfile ${configfile}
 ```
 
@@ -94,7 +99,7 @@ Relevant pipeline config values:
 Command:
 
 ```bash
-docker run --mount type=bind,source="$(pwd)"/test/test_experiment,target=/app/test/test_experiment paradias:test \
+docker run --mount type=bind,source="$(pwd)"/test/test_experiment,target=/app/test/test_experiment candia:test \
     snakemake --forceall -s scripts/util/adjust_swaths.Snakefile --configfile  ${configfile}
 ```
 
@@ -113,7 +118,7 @@ Relevant pipeline config values:
 * `slices_location` - location of output slices
 
 ```bash
-docker run --mount type=bind,source="$(pwd)"/test/test_experiment,target=/app/test/test_experiment paradias:test \
+docker run --mount type=bind,source="$(pwd)"/test/test_experiment,target=/app/test/test_experiment candia:test \
     python scripts/util/split_csv_maps_to_slices.py --config ${configfile}
 ```
 
@@ -134,7 +139,7 @@ The m/z precision is 10 decimals and
 m/z partitions with less than 5 time points in any sample are filtered out.
 
 ```bash
-docker run --mount type=bind,source="$(pwd)"/test/test_experiment,target=/app/test/test_experiment paradias:test \
+docker run --mount type=bind,source="$(pwd)"/test/test_experiment,target=/app/test/test_experiment candia:test \
     snakemake --jobs 4 -s scripts/util/generate_slice_tensors.Snakefile \
     -R generate_slice_tensor --forceall --rerun-incomplete --configfile ${configfile} 
 ```
@@ -165,30 +170,34 @@ Relevant pipeline config values:
 
 > Expected running time: 6 - 12 hours (depending on the GPU model)
 
+### Workstation
+
 The workstation command has the syntax:
 
 `scripts/parafac/decompose_workstation.sh  EXPERIMENT_CONFIG_FILE N_PARALLEL_DECOMP_PER_GPU [SNAKEMAKE_OPTIONS]`
 
+Example running with Singularity (with 2 parallel decompositions per GPU):
+
 ```bash
-docker run \
-    --mount type=bind,source="$(pwd)"/test/test_experiment,target=/app/test/test_experiment \
-    --mount type=bind,source=/usr/bin,target=/opt/usr/bin,readonly \
-    paradias:test scripts/parafac/decompose_workstation.sh "${configfile}" 2
+singularity exec --nv candia.sif /bin/bash -c "scripts/parafac/decompose_workstation.sh ${configfile} 2"
 ```
+
+### HPC cluster
 
 The cluster command has the syntax:
 
 `scripts/parafac/decompose_cluster.sh ${snake_configfile} N_PARALLEL_DECOMP_PER_GPU`
 
-And is designed to be run as an array job:
+And is designed to be run as an array job on slurm.
+Example (with 6 parallel decompositions per GPU):
 
 ```bash
 sbatch --array=0-1 --gres=gpu:1 --time 24:00:00 \
     scripts/parafac/decompose_cluster.sh "${configfile}" 6
 ```
 
-or using `decomopse_cluster_singularity.sh` should you prefer to use a Singularity image.
-The image should be named `parafac.simg`. 
+If Singularity is not available, you can use the
+`decomopse_cluster_no_singularity.sh` script. 
 
 
 ## 6. Index all PARAFAC models and components

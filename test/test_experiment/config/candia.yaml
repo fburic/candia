@@ -3,8 +3,8 @@ root_dir: "test/test_experiment"
 
 samples_mzml: "samples/scans_mzml"
 samples_csv: "samples/scans_csv"
-samples_adjusted_swaths: "samples/151029_csv_adjusted"
-slices_location:  "samples/151029_csv_slices"
+samples_adjusted_swaths: "samples/scans_csv_adjusted"
+slices_location:  "samples/scans_csv_slices"
 
 swath_windows: "swath_isolation_windows.csv"
 swath_windows_adjusted: "swath_isolation_windows_adjusted.csv"
@@ -26,7 +26,7 @@ parafac_min_comp:  10
 parafac_max_comp:  90
 parafac_backend: "pytorch"
 parafac_avail_ram_gb: 32
-log_dir: ""
+log_dir: "$TMPDIR/logs"
 tmp_dir: "$TMPDIR"
 
 model_index: "model_index.feather"
