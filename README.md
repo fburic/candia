@@ -8,9 +8,48 @@ CANDIA is a GPU-powered unsupervised multiway factor analysis framework that dec
 
 ## Note
 
-This repository holds the CANDIA scripts that produced the results in the bioRxiv preprint. Restructuring the pipeline and making it easy to use is a work in progress. The repository will be updated but this revision is kept to freeze the source code to the time of manuscript submission.
+This repository holds the CANDIA scripts that produced the results in the bioRxiv preprint. 
+Restructuring the pipeline and making it easy to use is a work in progress. 
+The repository will be updated but this revision is kept to freeze the source code 
+to the time of manuscript submission.
 
-## Dependencies
+### Third-party software
+
+These are either not distributed through package management archives or 
+those versions are broken. 
+
+#### MS-GF+
+
+MS-GF+ comes in the form of a Java JAR package and it only needs to be unzipped into
+a directory (e.g. `/home/$USER/software`).
+Installation instructions: https://github.com/MSGFPlus/msgfplus
+
+The environment variable `MSGF_JAR_PATH` needs to be set to inform the pipeline 
+of the `.jar` location. Add it to your `.bashrc` or `.profile`. E.g.
+
+```shell
+export MSGF_JAR_PATH="/home/$USER/software/MSGFPlus/MSGFPlus.jar"
+```
+
+#### Mayu
+
+Mayu is in the form of Perl scripts, so it only needs to be unzipped to be used.
+http://proteomics.ethz.ch/muellelu/web/LukasReiter/Mayu/
+
+It was designed to be executed from its installation directory 
+(e.g. `/home/$USER/software/Mayu`) so the environment variable `MAYU_STANDALONE_PATH` 
+needs to be set up to point at this location, so the pipeline may run it from anywhere.
+
+Add it to your `.bashrc` or `.profile`. E.g.
+
+```shell
+export MAYU_STANDALONE_PATH="/home/$USER/software/Mayu"
+```
+
+Note: The `tpp` version `5.0.0-0` bioconda package that also includes Mayu is missing
+some of its libraries.
+
+## Installation
 
 We recommend using the Singularity image provided on Singularity Hub or Sylabs Cloud,
 which contains a conda environment with all CANDIA dependencies.
@@ -19,7 +58,7 @@ Alternatively, the image may be built from the supplied `candia.def` file
 
 To download the image from either location:
 
-* Singularity Hub: `singularity pull shub://fburic/candia:latest`
+* Singularity Hub: `singularity pull shub://fburic/candia`
 * Sylabs Cloud: `singularity pull library://fburic/candia/candia` 
 
 A conda environment can also be built from scratch using the provided `candia_env.yaml`
@@ -44,7 +83,6 @@ A Singularity recipe to encapsulate the environment is provided.
 An NVIDIA GPU card is required for the decomposition.
 Partial support for CPU-only execution is implemented but the performance becomes infeasible.
 
-
 ### 0. Configure CANDIA execution
 
 The execution of the pipeline is configured through a YAML file
@@ -58,7 +96,7 @@ A full configuraiton file is provided in the test experiment.
 
 The scripts are expected to be run from the CANDIA top-level directory.
 
-###  1. Convert DIA scan files from mzML to CSV
+### 1. Convert DIA scan files from mzML to CSV
 
 > Expected running time: 3-5 minutes per file
 
@@ -76,13 +114,12 @@ It should automatically use all available cores.
 
 Commands:
 
-```bash
+```shell
 configfile='test/test_experiment/config/candia.yaml'
 
-docker run --mount type=bind,source="$(pwd)"/test/test_experiment,target=/app/test/test_experiment candia:test \
+singularity exec candia.sif \
     snakemake -s scripts/util/mzml2csv.Snakefile --configfile ${configfile}
 ```
-
 
 ### 2. Adjust precursor isolation windows
 
@@ -98,11 +135,10 @@ Relevant pipeline config values:
 
 Command:
 
-```bash
-docker run --mount type=bind,source="$(pwd)"/test/test_experiment,target=/app/test/test_experiment candia:test \
-    snakemake --forceall -s scripts/util/adjust_swaths.Snakefile --configfile  ${configfile}
+```shell
+singularity exec candia.sif \
+    snakemake --forceall -p -s scripts/util/adjust_swaths.Snakefile --configfile  ${configfile}
 ```
-
 
 ### 3. Split samples into slices
 
@@ -117,11 +153,10 @@ Relevant pipeline config values:
 * `window_size_sec` - the width of the RT windows
 * `slices_location` - location of output slices
 
-```bash
-docker run --mount type=bind,source="$(pwd)"/test/test_experiment,target=/app/test/test_experiment candia:test \
+```shell
+singularity exec candia.sif \
     python scripts/util/split_csv_maps_to_slices.py --config ${configfile}
 ```
-
 
 ## 4. Generate tensor files for all slices
 
@@ -138,20 +173,22 @@ Relevant pipeline config values:
 The m/z precision is 10 decimals and 
 m/z partitions with less than 5 time points in any sample are filtered out.
 
-```bash
-docker run --mount type=bind,source="$(pwd)"/test/test_experiment,target=/app/test/test_experiment candia:test \
+```shell
+singularity exec candia.sif \
     snakemake --jobs 4 -s scripts/util/generate_slice_tensors.Snakefile \
     -R generate_slice_tensor --forceall --rerun-incomplete --configfile ${configfile} 
 ```
 
 On a slurm-managed cluster, this would be:
 
-```bash
-snakemake --jobs 200 -s scripts/util/generate_slice_tensors.Snakefile \
-  -R generate_slice_tensor --forceall --rerun-incomplete --configfile ${configfile} \
-  --cluster "sbatch -A {account.number} -t 06:00:00 --ntasks 6"
+```shell
+NJOBS = 200
+ACCOUNT_NUMBER = ABC123
+singularity exec candia.sif \
+    snakemake --jobs ${NJOBS} -s scripts/util/generate_slice_tensors.Snakefile \
+    -R generate_slice_tensor --forceall --rerun-incomplete --configfile ${configfile} \
+    --cluster "sbatch -A ${ACCOUNT_NUMBER} -t 06:00:00 --ntasks 6"
 ```
-
 
 ## 5. Run PARAFAC decomposition
 
@@ -178,8 +215,8 @@ The workstation command has the syntax:
 
 Example running with Singularity (with 2 parallel decompositions per GPU):
 
-```bash
-singularity exec --nv candia.sif /bin/bash -c "scripts/parafac/decompose_workstation.sh ${configfile} 2"
+```shell
+scripts/parafac/decompose_workstation.sh ${configfile} 2"
 ```
 
 ### HPC cluster
@@ -191,7 +228,7 @@ The cluster command has the syntax:
 And is designed to be run as an array job on slurm.
 Example (with 6 parallel decompositions per GPU):
 
-```bash
+```shell
 sbatch --array=0-1 --gres=gpu:1 --time 24:00:00 \
     scripts/parafac/decompose_cluster.sh "${configfile}" 6
 ```
@@ -199,12 +236,11 @@ sbatch --array=0-1 --gres=gpu:1 --time 24:00:00 \
 If Singularity is not available, you can use the
 `decomopse_cluster_no_singularity.sh` script. 
 
-
 ## 6. Index all PARAFAC models and components
- 
+
 This is a necessary step for downstream analysis. It assigns a unique ID to each
 PARAFAC model and component, as well as record the filenames of all tensor models.
- 
+
 TODO: expand, clarify
 
 The cluster command is;
@@ -213,7 +249,6 @@ The cluster command is;
 sbatch --time 00:20:00 --ntasks 1 --cpus-per-task 30 \
     run_python.sh scripts/parafac/models.py -c ${configfile}
 ```
-
 
 ## 7. Select Best Models
 
@@ -232,7 +267,6 @@ Then, select models:
 scripts/parafac/select_best_models.sh -c ${configfile}
 ```
 
-
 ## 8. Identify proteins using Crux or MS-GF+
 
 Configure which tool to use through the configuration file
@@ -244,7 +278,6 @@ sbatch -t 04:00:00 \
     run_python.sh scripts/parafac/id_models_concat.py -c ${configfile}
 ```
 
-
 ## 9. Build library
 
 TODO: expand, clarify
@@ -253,7 +286,6 @@ TODO: expand, clarify
 snakemake -s scripts/quantification/build_library.Snakefile --configfile ${configfile}
 ```
 
-
 ## 10. Quantify proteins with DIA-NN
 
 TODO: expand, clarify
@@ -261,7 +293,6 @@ TODO: expand, clarify
 ```bash
 sbatch scripts/quantification/diann_slurm.sh --configfile ${configfile}
 ```
-
 
 ## 11. De novo sequencing with Novor and DeepNovo
 
