@@ -8,7 +8,7 @@ import numpy as np
 # So this pattern needs to account for the entire directory hierarchy
 # down to known (pattern-free) file names.
 slice_dir_pattern = expand("{location}/swath_lower_adjusted={{swath_start}}/rt_window={{time_window}}/slice_tensor.npy",
-                           location=config["slices_location"])
+                           location=config["root_dir"] + '/' + config["slices_location"])
 
 slice_output_pattern = slice_dir_pattern
 
