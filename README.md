@@ -27,7 +27,7 @@ Installation instructions: https://github.com/MSGFPlus/msgfplus
 The environment variable `MSGF_JAR_PATH` needs to be set to inform the pipeline 
 of the `.jar` location. Add it to your `.bashrc` or `.profile`. E.g.
 
-```shell
+```shell script
 export MSGF_JAR_PATH="/home/$USER/software/MSGFPlus/MSGFPlus.jar"
 ```
 
@@ -42,12 +42,13 @@ needs to be set up to point at this location, so the pipeline may run it from an
 
 Add it to your `.bashrc` or `.profile`. E.g.
 
-```shell
+```shell script
 export MAYU_STANDALONE_PATH="/home/$USER/software/Mayu"
 ```
 
 Note: The `tpp` version `5.0.0-0` bioconda package that also includes Mayu is missing
 some of its libraries.
+
 
 ## Installation
 
@@ -83,6 +84,7 @@ A Singularity recipe to encapsulate the environment is provided.
 An NVIDIA GPU card is required for the decomposition.
 Partial support for CPU-only execution is implemented but the performance becomes infeasible.
 
+
 ### 0. Configure CANDIA execution
 
 The execution of the pipeline is configured through a YAML file
@@ -114,12 +116,13 @@ It should automatically use all available cores.
 
 Commands:
 
-```shell
+```shell script
 configfile='test/test_experiment/config/candia.yaml'
 
 singularity exec candia.sif \
     snakemake -s scripts/util/mzml2csv.Snakefile --configfile ${configfile}
 ```
+
 
 ### 2. Adjust precursor isolation windows
 
@@ -135,10 +138,19 @@ Relevant pipeline config values:
 
 Command:
 
-```shell
+```shell script
 singularity exec candia.sif \
     snakemake --forceall -p -s scripts/util/adjust_swaths.Snakefile --configfile  ${configfile}
 ```
+
+Save the adjusted intervals for downstream tasks:
+
+```shell script
+EXP_DIR=$(grep "root_dir:" ${configfile} | cut -d " " -f 2 | tr -d \")
+cp $(find ${EXP_DIR} -name "*.intervals" | head -n 1) \
+   ${EXP_DIR}/$(grep "swath_windows_adjusted:" ${configfile} | cut -d " " -f 2 | tr -d \")
+```
+
 
 ### 3. Split samples into slices
 
@@ -153,10 +165,11 @@ Relevant pipeline config values:
 * `window_size_sec` - the width of the RT windows
 * `slices_location` - location of output slices
 
-```shell
+```shell script
 singularity exec candia.sif \
     python scripts/util/split_csv_maps_to_slices.py --config ${configfile}
 ```
+
 
 ## 4. Generate tensor files for all slices
 
@@ -173,7 +186,7 @@ Relevant pipeline config values:
 The m/z precision is 10 decimals and 
 m/z partitions with less than 5 time points in any sample are filtered out.
 
-```shell
+```shell script
 singularity exec candia.sif \
     snakemake --jobs 4 -s scripts/util/generate_slice_tensors.Snakefile \
     -R generate_slice_tensor --forceall --rerun-incomplete --configfile ${configfile} 
@@ -181,14 +194,15 @@ singularity exec candia.sif \
 
 On a slurm-managed cluster, this would be:
 
-```shell
-NJOBS = 200
-ACCOUNT_NUMBER = ABC123
+```shell script
+NJOBS=200
+ACCOUNT_NUMBER=ABC123
 singularity exec candia.sif \
     snakemake --jobs ${NJOBS} -s scripts/util/generate_slice_tensors.Snakefile \
     -R generate_slice_tensor --forceall --rerun-incomplete --configfile ${configfile} \
     --cluster "sbatch -A ${ACCOUNT_NUMBER} -t 06:00:00 --ntasks 6"
 ```
+
 
 ## 5. Run PARAFAC decomposition
 
@@ -215,7 +229,7 @@ The workstation command has the syntax:
 
 Example running with Singularity (with 2 parallel decompositions per GPU):
 
-```shell
+```shell script
 scripts/parafac/decompose_workstation.sh ${configfile} 2"
 ```
 
@@ -228,7 +242,7 @@ The cluster command has the syntax:
 And is designed to be run as an array job on slurm.
 Example (with 6 parallel decompositions per GPU):
 
-```shell
+```shell script
 sbatch --array=0-1 --gres=gpu:1 --time 24:00:00 \
     scripts/parafac/decompose_cluster.sh "${configfile}" 6
 ```
@@ -236,47 +250,75 @@ sbatch --array=0-1 --gres=gpu:1 --time 24:00:00 \
 If Singularity is not available, you can use the
 `decomopse_cluster_no_singularity.sh` script. 
 
+
 ## 6. Index all PARAFAC models and components
 
-This is a necessary step for downstream analysis. It assigns a unique ID to each
-PARAFAC model and component, as well as record the filenames of all tensor models.
+All PARAFAC models and components are indexed with a unique ID, as support for
+downstream tasks. These IDs, along with model filenames, are saved in two database
+(or "index") files, in [Apache Feather](https://arrow.apache.org/docs/python/feather.html) format.
+ 
+Relevant pipeline config values:
 
-TODO: expand, clarify
-
-The cluster command is;
-
-```bash
-sbatch --time 00:20:00 --ntasks 1 --cpus-per-task 30 \
-    run_python.sh scripts/parafac/models.py -c ${configfile}
+* `model_index` - Model ID index filename (Apache Feather format)
+* `spectrum_index` - PARAFAC component ID index filename (Apache Feather format)
+ 
+```shell script
+singularity exec candia.sif \
+    python scripts/parafac/models.py -c ${configfile}
 ```
+
 
 ## 7. Select Best Models
 
-TODO: expand, clarify
+Measure the unimodality of all PARAFAC components (for all models),
+then create a list of the best PARAFAC models, according to the unimodality criterion. 
+
+Relevant pipeline config values:
+
+* `avg_peak_fwhm_sec` - The expected peak FWHM, to inform the peak finding procedure.
+* `window_size_sec` - Width of the RT windows (in seconds).
+* `time_modes_values` - Tabular file in Feather format that collects peak counts for all time modes (in all components), 
+  for all models generated by CANDIA across all slices.
+* `best_models` - CSV file where the best model parameter values are stored
 
 First, collect the time modes and measure unimodality fractions.
 
-```bash
-sbatch --ntasks 1 --cpus-per-task 32 \
-    run_python.sh scripts/parafac/collect_time_mode_values.py -c ${configfile}
+```shell script
+singularity exec candia.sif \
+    python scripts/parafac/collect_time_mode_values.py -c ${configfile}
 ```
 
 Then, select models:
 
-```bash
-scripts/parafac/select_best_models.sh -c ${configfile}
+```shell script
+singularity exec candia.sif \
+    Rscript scripts/parafac/select_best_models.R -c ${configfile}
 ```
+
 
 ## 8. Identify proteins using Crux or MS-GF+
 
-Configure which tool to use through the configuration file
+Configure which tool to use by setting the `analysis_pipeline` 
+variable to either `"crux"` or `"msgf+"` in the configuration file.
+For example, in the provided test experiment, this is set to `"crux"`
 
-TODO: expand, clarify
+A separate decoy sequence database must be provided besides the targets.
 
-```bash
-sbatch -t 04:00:00 \
-    run_python.sh scripts/parafac/id_models_concat.py -c ${configfile}
+Relevant pipeline config values:
+
+* `best_models_mzxml` - MzXML file where the spectra from the best models are concatenated
+* `best_models_crux_out_dir` - The directory for Crux results (Crux outputs multiple files)
+* `database` - FASTA protein sequence database 
+* `decoy_database` - FASTA decoy sequence database 
+* `decoy_prefix` - Decoy sequence ID prefix, which should include separator (e.g. `decoy_`)
+* `msgf_modifications` - MS-GF+ modifications configuration file, if any
+* `msgf_threads` - The number of MS-GF+ computation threads to use
+
+```shell script
+singularity exec candia.sif \
+    python scripts/identification/id_models_concat.py -c ${configfile}
 ```
+
 
 ## 9. Build library
 
@@ -286,6 +328,7 @@ TODO: expand, clarify
 snakemake -s scripts/quantification/build_library.Snakefile --configfile ${configfile}
 ```
 
+
 ## 10. Quantify proteins with DIA-NN
 
 TODO: expand, clarify
@@ -293,6 +336,7 @@ TODO: expand, clarify
 ```bash
 sbatch scripts/quantification/diann_slurm.sh --configfile ${configfile}
 ```
+
 
 ## 11. De novo sequencing with Novor and DeepNovo
 
