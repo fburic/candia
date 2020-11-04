@@ -23,10 +23,10 @@ decoy_prefix: "decoy_"
 parafac_init:  "random"
 parafac_max_iter: 5000
 parafac_min_comp:  10
-parafac_max_comp:  90
+parafac_max_comp:  14
 parafac_backend: "pytorch"
-parafac_avail_ram_gb: 32
-log_dir: "$TMPDIR/logs"
+parafac_avail_ram_gb: 16
+log_dir: "logs"
 tmp_dir: "$TMPDIR"
 
 model_index: "model_index.feather"
