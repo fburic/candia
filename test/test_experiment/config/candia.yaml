@@ -15,9 +15,9 @@ mass_tol_ppm: 40
 
 avg_peak_fwhm_sec: 12
 
-database:  "db/scerevisiae_uniprot_20181004.fasta"
-decoy_database: "db/scerevisiae_uniprot_20181004_decoys.fasta"
-mixed_database: "db/scerevisiae_uniprot_20181004_incl_decoys.fasta"
+database:  "db/scerevisiae_subsample.fasta"
+decoy_database: "db/scerevisiae_subsample_decoys.fasta"
+mixed_database: "db/scerevisiae_subsample_incl_decoys.fasta"
 decoy_prefix: "decoy_"
 
 parafac_init:  "random"
@@ -46,7 +46,7 @@ best_models: "results/best_models_acc_to_unimodality.csv"
 best_models_mzxml: "results/best_models_acc_to_unimodality.mzXML"
 best_models_crux_out_dir: "results/crux-output-concat-unimodal"
 
-percolator_fdr: 0.05
+percolator_fdr: 0.01
 diaumpire_out_dir: "results/diaumpire_out"
 diaumpire_paramfile: "results/diaumpire_se.params"
 diaumpire_library: "results/diaumpire_out/diaumpire_library_openswath.tsv"

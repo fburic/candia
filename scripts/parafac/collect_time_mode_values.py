@@ -1,6 +1,7 @@
 import argparse
 import inspect
 import logging
+import os
 import os.path as path
 import sys
 
@@ -21,8 +22,8 @@ _this_filename = inspect.getframeinfo(inspect.currentframe()).filename
 _this_path = Path(_this_filename).parent.resolve()
 sys.path.append(str(_this_path.parent))
 
-from ..util import msproc
-from ..parafac import models
+from util import msproc
+from parafac import models
 
 logging.basicConfig(format=msproc.LOG_FORMAT, level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -31,7 +32,8 @@ coloredlogs.install(fmt=msproc.LOG_FORMAT, level='INFO', logger=logger)
 
 def main():
     args = get_args()
-    model_params = models.read_index(args.config['model_index'], file_format='feather')
+    model_params = models.read_index(Path(args.config['root_dir']) / args.config['model_index'],
+                                     file_format='feather')
     models_info = [minfo[1] for minfo in list(model_params.iterrows())]
 
     with Pool(processes=cpu_count()) as pool:
@@ -41,8 +43,12 @@ def main():
     logger.info('Read time modes from all models')
 
     model_peak_count = pd.concat(model_peak_count, ignore_index=True)
-    feather.write_feather(model_peak_count, args.config['time_modes_values'])
-    logger.info('Wrote %s' % args.config['time_modes_values'])
+
+    model_peak_count_filename = Path(args.config['root_dir']) / args.config['time_modes_values']
+    if not model_peak_count_filename.parent.exists():
+        os.makedirs(model_peak_count_filename.parent)
+    feather.write_feather(model_peak_count, model_peak_count_filename)
+    logger.info(f"Wrote {Path(args.config['root_dir']) / args.config['time_modes_values']}")
 
 
 def get_model_time_mode_peak_counts(args: argparse.Namespace,

@@ -8,8 +8,8 @@ library("yaml")
 
 main <- function() {
     config <- get_config()
-    peak_counts <- as.data.table(read_feather(config$time_modes_values))
-    model_index <- read_feather(config$model_index)
+    peak_counts <- as.data.table(read_feather(file.path(config$root_dir, config$time_modes_values)))
+    model_index <- read_feather(file.path(config$root_dir, config$model_index))
 
     print("INFO: Selecting best models according to criteria: unimodality")
 
@@ -38,8 +38,8 @@ main <- function() {
 
     models_with_mostly_unimodal_elution_profiles %>%
         mutate(swath_start = formatC(swath_start / 100, format = "f", digits = 2)) %>%
-        write_csv(config$best_models)
-    print(paste0("INFO: Wrote ", config$best_models))
+        write_csv(file.path(config$root_dir, config$best_models))
+    print(paste0("INFO: Wrote ", file.path(config$root_dir, config$best_models)))
 }
 
 

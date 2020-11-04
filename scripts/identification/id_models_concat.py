@@ -1,7 +1,6 @@
 """
-Pick most promising models as assessed by Comet,
-concatenate into single mzXML file,
-and use Comet + Percolator to get high-confidence PSMs
+Concatenate spectra from best models into single mzXML file,
+then get high-confidence PSMs.
 """
 import argparse
 import difflib
@@ -27,8 +26,8 @@ _this_filename = inspect.getframeinfo(inspect.currentframe()).filename
 _this_path = Path(_this_filename).parent.resolve()
 sys.path.append(str(_this_path.parent))
 
-from ..util import msproc
-from ..parafac import models
+from util import msproc
+from parafac import models
 
 logging.basicConfig(format=msproc.LOG_FORMAT, level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -42,11 +41,11 @@ def main():
         concatenate_best_models_to_mzxml(args)
 
     if args.config['analysis_pipeline'] == 'crux':
-        comet_target_dir = path.join(args.config['best_models_crux_out_dir'], 'comet_target')
-        comet_decoy_dir = path.join(args.config['best_models_crux_out_dir'], 'comet_decoy')
+        comet_target_dir = path.join(args.config['root_dir'], args.config['best_models_crux_out_dir'], 'comet_target')
+        comet_decoy_dir = path.join(args.config['root_dir'], args.config['best_models_crux_out_dir'], 'comet_decoy')
 
-        get_comet_psm(args, comet_target_dir, args.config['database'])
-        get_comet_psm(args, comet_decoy_dir, args.config['decoy_database'])
+        get_comet_psm(args, comet_target_dir, path.join(args.config['root_dir'], args.config['database']))
+        get_comet_psm(args, comet_decoy_dir, path.join(args.config['root_dir'], args.config['decoy_database']))
         get_percolator_separation(args, comet_target_dir, comet_decoy_dir)
 
     elif args.config['analysis_pipeline'] == 'msgf+':
@@ -63,12 +62,13 @@ def concatenate_best_models_to_mzxml(args):
     logger.info('Concatenating best models to single mzXML file with unique scan IDs...')
     model_params = get_params_for_best_models(args).to_dict('records')
 
-    spectrum_index = models.read_index(args.config['spectrum_index'], file_format='feather')
+    spectrum_index = models.read_index(path.join(args.config['root_dir'], args.config['spectrum_index']),
+                                       file_format='feather')
     spectrum_index = spectrum_index.drop(columns='model_id')  # Save some memory
-    isol_windows = pd.read_csv(args.config['swath_windows_adjusted'])
+    isol_windows = pd.read_csv(path.join(args.config['root_dir'], args.config['swath_windows_adjusted']))
     intensity_cutoff_bin = args.config['intensity_lower_percentage_cutoff']
 
-    with msproc.MassMode2MzXMLEncoder(args.config['best_models_mzxml']) as mzxml_encoder:
+    with msproc.MassMode2MzXMLEncoder(path.join(args.config['root_dir'], args.config['best_models_mzxml'])) as mzxml_encoder:
 
         for model_info in tqdm(model_params):
             try:
@@ -120,9 +120,9 @@ def concatenate_best_models_to_mzxml(args):
 
 
 def get_params_for_best_models(args):
-    model_params = pd.read_csv(args.config['best_models'])
+    model_params = pd.read_csv(path.join(args.config['root_dir'], args.config['best_models']))
     model_params['path'] = model_params.apply(partial(_model_path_from_params,
-                                                      args.config['slices_location']),
+                                                      path.join(args.config['root_dir'], args.config['slices_location'])),
                                               axis='columns')
     return model_params
 
@@ -137,7 +137,7 @@ def _model_path_from_params(slies_location, model_params):
 
 def get_comet_psm(args, comet_output_dir, database):
     run_comet(output_dir=comet_output_dir,
-              mass_mode_filename=args.config['best_models_mzxml'],
+              mass_mode_filename=path.join(args.config['root_dir'], args.config['best_models_mzxml']),
               library=database,
               mass_tol_ppm=args.config['mass_tol_ppm'],
               crux_param_file=None)
@@ -146,7 +146,7 @@ def get_comet_psm(args, comet_output_dir, database):
 def get_percolator_separation(args, comet_target_dir, comet_decoy_dir):
     comet_target_results = comet_target_dir + '/comet.target.txt'
     comet_decoy_results = comet_decoy_dir + '/comet.target.txt'
-    percolator_out_dir = args.config['best_models_crux_out_dir']
+    percolator_out_dir = path.join(args.config['root_dir'], args.config['best_models_crux_out_dir'])
     run_percolator(percolator_out_dir,
                    args.config['percolator_fdr'],
                    comet_target_results,
@@ -189,14 +189,14 @@ def get_msgf_psm(args):
     if not msgf_jar_path:
         raise Exception('MSGF_JAR_PATH not set')
 
-    best_models_path = Path(args.config["best_models_mzxml"])
+    best_models_path = Path(args.config['root_dir']) / args.config["best_models_mzxml"]
     cmd = (f'java -Xmx3500M -jar {msgf_jar_path} '
            f'-s {best_models_path} '
-           f'-d {args.config["database"]} '
+           f'-d {path.join(args.config["root_dir"], args.config["database"])} '
            f'-tda 1 -decoy {args.config["decoy_prefix"][:-1]} '
            f'-t {args.config["mass_tol_ppm"]}ppm '
            f'-inst 2 '
-           f'-mod {args.config["msgf_modifications"]}')
+           f'-mod {path.join(args.config["root_dir"], args.config["msgf_modifications"])}')
     _run_cmd(cmd, 'Running MS-GF+:')
 
     cmd = (f'java -Xmx3500M -cp {msgf_jar_path} edu.ucsd.msjava.ui.MzIDToTsv '
@@ -230,33 +230,6 @@ def get_args():
         logger.error("Analytic pipeline " + args.config['analysis_pipeline'] + ' not supported')
         raise Exception('Invalid pipeline config value: analysis_pipeline = ' + args.config['analysis_pipeline'])
     return args
-
-
-def get_test_args():
-    Args = namedtuple('Args', ['config'])
-    args = Args(config={"slices_location": "test/models/slices",
-                        "analysis_pipeline": "crux",
-                        "spectrum_index": "test/models/spectrum_index.h5",
-                        "swath_windows_adjusted": "test/models/swaths_adjusted.csv",
-                        "best_models": "test/models/best_models_acc_to_comet.csv",
-                        "best_models_mzxml": "/tmp/best_models_acc_to_comet.mzXML",
-                        "best_models_crux_out_dir": "test/models/crux-output-concat",
-                        "percolator_fdr": 0.01})
-    return args
-
-
-def test_concatenate_best_models_to_mzxml():
-    # FIXME: mass mode is too large. M/z indices are a small list.
-
-    expected_mzxml = 'test/models/best_models_acc_to_comet.mzXML'
-    args = get_test_args()
-    concatenate_best_models_to_mzxml(args)
-
-    with open(args.config['best_models_mzxml'], 'r') as test:
-        with open(expected_mzxml, 'r') as expected:
-            diff = list(difflib.unified_diff(test.readlines(), expected.readlines(), n=0))
-
-    assert len(diff) == 0
 
 
 if __name__ == '__main__':

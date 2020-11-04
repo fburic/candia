@@ -23,7 +23,7 @@ _this_filename = inspect.getframeinfo(inspect.currentframe()).filename
 _this_path = Path(_this_filename).parent.resolve()
 sys.path.append(str(_this_path.parent))
 
-from ..util import msproc
+from util import msproc
 
 logging.basicConfig(format=msproc.LOG_FORMAT, level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -44,16 +44,17 @@ def main():
     Create index of all models and spectra based only on experiment parameters.
     """
     args = get_args()
-
+    root_dir = Path(args.config['root_dir'])
+    
     model_index = index_all_models(args)
     model_index['path'] = model_index.apply(partial(_model_path_from_params,
-                                                    args.config['slices_location']),
+                                                    root_dir / args.config['slices_location']),
                                             axis='columns')
-    write_index(args.config['model_index'], model_index, file_format='feather')
+    write_index(root_dir / args.config['model_index'], model_index, file_format='feather')
     logger.info('Wrote model index')
 
     spectrum_index = index_all_spectra(model_index.drop(columns='path'))
-    write_index(args.config['spectrum_index'], spectrum_index, file_format='feather')
+    write_index(root_dir / args.config['spectrum_index'], spectrum_index, file_format='feather')
     logger.info('Wrote spectrum index')
 
 
@@ -64,7 +65,8 @@ def index_all_models(args):
 
     :return: pandas.DataFrame with all combinations of model parameters and associated ID
     """
-    swath_starts = pd.read_csv(args.config['swath_windows_adjusted'])['swath_lower_adjusted'].values
+    swaths_adjusted_filename = Path(args.config['root_dir']) / args.config['swath_windows_adjusted']
+    swath_starts = pd.read_csv(swaths_adjusted_filename)['swath_lower_adjusted'].values
     swath_starts = np.round(swath_starts * 100).astype(np.uint32)
     rt_windows = get_rt_windows(args)
     ncomp_range = range(args.config['parafac_min_comp'], args.config['parafac_max_comp'] + 1)
@@ -117,7 +119,7 @@ def index_all_spectra(model_index):
 
 def get_rt_windows(args):
     window_size_sec = args.config['window_size_sec']
-    with open(path.join(args.experiment_dir, 'computed_values.yaml'), 'r') as values_file:
+    with open(Path(args.config['root_dir']) / 'computed_values.yaml', 'r') as values_file:
         computed_values = yaml.load(values_file)
     rt_windows = np.arange(0, computed_values['max_rt'], window_size_sec)
     return rt_windows
@@ -180,8 +182,7 @@ def get_args():
                         help='YAML experiment config file')
     args = parser.parse_args()
     with open(args.config, 'r') as config_file:
-        args.config = yaml.load(config_file)
-    args.experiment_dir = path.join(*args.config['slices_location'].split('/')[:2])
+        args.config = yaml.load(config_file, Loader=yaml.FullLoader)
     return args
 
 
