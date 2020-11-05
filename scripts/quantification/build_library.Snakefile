@@ -1,26 +1,26 @@
 import os
 from pathlib import Path
 
-lib_dir = Path(config['quant_library_dir'])
+lib_dir = Path(config["root_dir"]) / config['quant_library_dir']
 lib_basename = lib_dir / 'best_models_library.xml'
 mayu_path = os.getenv('MAYU_STANDALONE_PATH', default='')
 
 
 rule all:
     input:
-        config["quant_library"]
+        Path(config["root_dir"]) / config["quant_library"]
 
 
 rule comet:
     """Run Comet on a mixed target-decoy library"""
     input:
-        config['best_models_mzxml']
+        Path(config["root_dir"]) / config['best_models_mzxml']
     output:
         lib_dir / 'comet.target.pep.xml'
     shell:
         """
         crux comet --peptide_mass_units 2 --peptide_mass_tolerance {config[mass_tol_ppm]} \
-         --overwrite T --output-dir {lib_dir} {input} {config[mixed_database]}
+         --overwrite T --output-dir {lib_dir} {input} {config[root_dir]}/{config[mixed_database]}
         """
 
 
@@ -50,7 +50,7 @@ rule mayu:
     shell:
         """
         perl -I{mayu_path}/lib {mayu_path}/Mayu.pl \
-        -verbose -A {input} -C {config[mixed_database]}  -E {config[decoy_prefix]} \
+        -verbose -A {input} -C {config[root_dir]}/{config[mixed_database]}  -E {config[decoy_prefix]} \
         -G {config[quant_lib_mayu_fdr]} \
         -P mFDR={config[quant_lib_mayu_fdr]}:t \
         -H 51 \
@@ -64,7 +64,7 @@ rule make_scan_available:
     same basename as the PSM pepXML and be in the same dir
     """
     input:
-        config['best_models_mzxml']
+        Path(config["root_dir"]) / config['best_models_mzxml']
     output:
         lib_dir / 'comet.mzXML'
     shell:
@@ -116,7 +116,7 @@ rule spectrast2openswath:
     input:
         spectrast_lib=rules.spectrast.output
     output:
-        config["quant_library"]
+        Path(config["root_dir"]) / config["quant_library"]
     shell:
         """
         spectrast2tsv.py \
@@ -126,7 +126,7 @@ rule spectrast2openswath:
         -o 4 -n 6 \
         -p {config[quant_library_spectrast_max_frag_annot_err]} \
         -d \
-        -w <(cat {config[swath_windows]} | sed 's/,/\t/g') \
+        -w <(cat {config[root_dir]}/{config[swath_windows]} | sed 's/,/\t/g') \
         -k openswath -a {output} {input.spectrast_lib}
         """
 
