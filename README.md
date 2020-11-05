@@ -4,7 +4,8 @@
 
 CANDIA is a GPU-powered unsupervised multiway factor analysis framework that deconvolves multispectral scans to individual analyte spectra, chromatographic profiles, and sample abundances, using the PARAFAC (or canonical decomposition) method. The deconvolved spectra can be annotated with traditional database search engines or used as a high-quality input for *de novo* sequencing methods.
 
-*Parallel factor analysis enables quantification and identification of highly-convolved data independent-acquired protein spectra*, Filip Buric, Jan Zrimec, Aleksej Zelezniak, bioRxiv 2020.04.21.052654; doi: https://doi.org/10.1101/2020.04.21.052654
+> *Parallel Factor Analysis Enables Quantification and Identification of Highly Convolved Data-Independent-Acquired Protein Spectra*  
+> Filip Buric, Jan Zrimec, Aleksej Zelezniak, *Cell Patterns* (2020); DOI: https://doi.org/10.1016/j.patter.2020.100137
 
 ## Note
 
@@ -46,6 +47,12 @@ By using the Singularity container, CANDIA should be runnable on any OS that sup
 
 ### Third-party software
 
+The Singularity image (and associated conda environment) currently includes:
+
+* Crux 3.2 (package `crux-toolkit`, `bioconda` channel) 
+* TPP 5.0.0 (package `tpp`, `bioconda` channel)
+* msproteomicstools (version 0.11.0, `bioconda` channel)
+
 These are either not distributed through package management archives or 
 those versions are broken. 
 
@@ -83,9 +90,17 @@ some of its libraries.
 
 ## Usage
 
-The pipeline currently consists of a collection of scripts.
+The pipeline currently consists of a collection of scripts for the different stages of processing.
+The shell script `candia` is provided to run all pipeline steps from preprocessing 
+up to and including quantification library creation.
+However, *this script is still a work in progress* and is currently mainly used to test that the pipeline
+can execute on the user's system. 
+This can be done by running `./candia test/test_experiment/config/candia.yaml` from CANDIA's top level directory.
+The general syntax of this script is `candia EXPERIMENT_CONFIG_YAML`
+
+Currently, it is **recommended to run each stage at a time**, using the corresponding scripts. 
 Step-by-step instruction are listed here using the toy data files provided in this repo. 
-These are primarily meant to test the pipeline is working properly.
+These data files are primarily meant to test the pipeline is working properly.
 
 Expected running times are given as a very rough estimate on 9 real DIA scan files,
 to indicate the time scale of the steps.
@@ -110,9 +125,11 @@ as well as algorithm parameters. The paths are interpreted as relative to the
 experiment directory `root_dir`.
 
 Please read through the next steps to see which parameters are relevant at each step.
-A full configuraiton file is provided in the test experiment.
+A full configuration file is provided in the test experiment.
+More information may be found in the CANDIA article Supplemental Information.
 
-The scripts are expected to be run from the CANDIA top-level directory.
+The scripts are **expected to be run from the CANDIA top-level directory**.
+
 
 ### 1. Convert DIA scan files from mzML to CSV
 
@@ -246,7 +263,7 @@ The workstation command has the syntax:
 Example running with Singularity (with 2 parallel decompositions per GPU):
 
 ```shell script
-scripts/parafac/decompose_workstation.sh ${configfile} 2"
+scripts/parafac/decompose_workstation.sh ${configfile} 2
 ```
 
 ### HPC cluster
@@ -273,6 +290,8 @@ All PARAFAC models and components are indexed with a unique ID, as support for
 downstream tasks. These IDs, along with model filenames, are saved in two database
 (or "index") files, in [Apache Feather](https://arrow.apache.org/docs/python/feather.html) format.
  
+> Expected running time: a few sec
+ 
 Relevant pipeline config values:
 
 * `model_index` - Model ID index filename (Apache Feather format)
@@ -288,6 +307,8 @@ singularity exec candia.sif \
 
 Measure the unimodality of all PARAFAC components (for all models),
 then create a list of the best PARAFAC models, according to the unimodality criterion. 
+
+> Expected running time: 10 sec
 
 Relevant pipeline config values:
 
@@ -320,6 +341,8 @@ For example, in the provided test experiment, this is set to `"crux"`
 
 A separate decoy sequence database must be provided besides the targets.
 
+> Expected running time: 30 min with Crux, 1 h with MS-GF+ (depends on the set number of modifications)
+
 Relevant pipeline config values:
 
 * `best_models_mzxml` - MzXML file where the spectra from the best models are concatenated
@@ -330,22 +353,42 @@ Relevant pipeline config values:
 * `msgf_modifications` - MS-GF+ modifications configuration file, if any
 * `msgf_threads` - The number of MS-GF+ computation threads to use
 
+Crux version 3.2 is included in the Singularity container (and associated conda environment)
+
 ```shell script
 singularity exec candia.sif \
+    python scripts/identification/id_models_concat.py -c ${configfile}
+```
+
+If running CANDIA with MS-GF+, the container may be executed with a supplied path environment variable
+specifying the location of the MS-GF+ program.
+
+```shell script
+MSGF_JAR_PATH="$HOME/software/MSGFPlus/MSGFPlus.jar" singularity exec candia.sif \
     python scripts/identification/id_models_concat.py -c ${configfile}
 ```
 
 
 ## 9. Build library
 
-TODO: expand, clarify
+> Expected running time: 2-5 min
 
-```bash
-snakemake -s scripts/quantification/build_library.Snakefile --configfile ${configfile}
+The [Schubert et. al (2015)](https://www.nature.com/articles/nprot.2015.015) 
+protocol has been implemented and can be run as below.
+For a more detailed description, please see the Supplemental Information of the CANDIA paper. 
+The relevant pipeline config values are also described there.
+
+A mixed target-decoy is required. This is specified through the `mixed_database` parameter
+
+```shell script
+singularity exec candia.sif \
+    snakemake -s scripts/quantification/build_library.Snakefile --configfile ${configfile}
 ```
 
 
 ## 10. Quantify proteins with DIA-NN
+
+> Expected running time: 2-5 min per scan file
 
 TODO: expand, clarify
 
@@ -357,6 +400,8 @@ sbatch scripts/quantification/diann_slurm.sh --configfile ${configfile}
 ## 11. De novo sequencing with Novor and DeepNovo
 
 Configure which tool to use through the configuration file
+
+> Expected running time: 25 min with Novor, 10 min with DeepNovo (depends on GPU parameters) 
 
 TODO: expand, clarify
 
