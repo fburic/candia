@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+configfile=$1
+
+echo "Converting DIA scan files from mzML to CSV..."
+singularity exec candia.sif \
+    snakemake -s scripts/util/mzml2csv.Snakefile --configfile ${configfile}
+echo "done."
+
+
+echo "Adjusting precursor isolation windows..."
+singularity exec candia.sif \
+    snakemake --forceall -p -s scripts/util/adjust_swaths.Snakefile --configfile  ${configfile}
+
+EXP_DIR=$(grep "root_dir:" ${configfile} | cut -d " " -f 2 | tr -d \")
+cp $(find ${EXP_DIR} -name "*.intervals" | head -n 1) \
+   ${EXP_DIR}/$(grep "swath_windows_adjusted:" ${configfile} | cut -d " " -f 2 | tr -d \")
+
+echo "done."
+
+
+echo "Splitting samples into slices..."
+singularity exec candia.sif \
+   python scripts/util/split_csv_maps_to_slices.py --config ${configfile}
+echo "done."
+
+
+echo "Generate tensor files for all slices..."
+singularity exec candia.sif \
+    snakemake --jobs 4 -s scripts/util/generate_slice_tensors.Snakefile \
+    -R generate_slice_tensor --forceall --rerun-incomplete --configfile ${configfile}
+echo "done."
+
+
+echo "Running PARAFAC decomposition..."
+./scripts/parafac/decompose_workstation.sh ${configfile} 2
+echo "done."
+
+
+echo "Indexing all PARAFAC models and components..."
+singularity exec candia.sif \
+    python scripts/parafac/models.py -c ${configfile}
+echo "done."
+
+
+echo "Selecting best models"
+singularity exec candia.sif \
+    python scripts/parafac/collect_time_mode_values.py -c ${configfile}
+echo "done."
+
+
+echo "Identifying proteins"
+singularity exec candia.sif \
+    python scripts/identification/id_models_concat.py -c ${configfile}
+echo "done."
+
+
+echo "Building quantification library"
+singularity exec candia.sif \
+    snakemake -s scripts/quantification/build_library.Snakefile --configfile ${configfile}
+echo "done."
+
