@@ -29,7 +29,7 @@ The environment variable `MSGF_JAR_PATH` needs to be set to inform the pipeline
 of the `.jar` location. Add it to your `.bashrc` or `.profile`. E.g.
 
 ```shell script
-export MSGF_JAR_PATH="/home/$USER/software/MSGFPlus/MSGFPlus.jar"
+export MSGF_JAR_PATH="$HOME/software/MSGFPlus/MSGFPlus.jar"
 ```
 
 #### Mayu
@@ -44,7 +44,7 @@ needs to be set up to point at this location, so the pipeline may run it from an
 Add it to your `.bashrc` or `.profile`. E.g.
 
 ```shell script
-export MAYU_STANDALONE_PATH="/home/$USER/software/Mayu"
+export MAYU_STANDALONE_PATH="$HOME/software/Mayu"
 ```
 
 Note: The `tpp` version `5.0.0-0` bioconda package that also includes Mayu is missing
