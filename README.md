@@ -8,10 +8,11 @@ CANDIA is a GPU-powered unsupervised multiway factor analysis framework that dec
 
 ## Note
 
-This repository holds the CANDIA scripts that produced the results in the bioRxiv preprint. 
-Restructuring the pipeline and making it easy to use is a work in progress. 
-The repository will be updated but this revision is kept to freeze the source code 
-to the time of manuscript submission.
+This repository holds the CANDIA scripts that produced the results in the submitted article 
+(in the revision with the tag ["submission"](https://github.com/fburic/candia/releases/tag/submission)).
+Restructuring the pipeline and making it easy to use is a *work in progress*. 
+The repository will be updated but the `submission` revision is available as a snapshot of the source code 
+at the time of manuscript submission.
 
 ### Third-party software
 
