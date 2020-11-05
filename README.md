@@ -14,6 +14,36 @@ Restructuring the pipeline and making it easy to use is a *work in progress*.
 The repository will be updated but the `submission` revision is available as a snapshot of the source code 
 at the time of manuscript submission.
 
+
+## Installation
+
+The current CANDIA distribution is split in two components: 
+
+* the scripts that make up the pipeline (clone this repo to fetch them)
+* a Singularity container which includes all dependencies for running CANDIA (Python libraries and other necessary third-party software)
+
+We recommend using the Singularity container provided on Singularity Hub or Sylabs Cloud.
+(There is no difference in contents, only Singularity version used to build the containers).
+To download the container from either location, first [install](https://sylabs.io/guides/3.0/user-guide/quick_start.html) 
+Singularity 3.x on your system, then pull the container with either command:
+
+* Singularity Hub (Singularity 3.4.2): `singularity pull shub://fburic/candia`
+* Sylabs Cloud (Singularity 3.4.0): `singularity pull library://fburic/candia/candia` 
+
+Alternatively, the container may be built from the supplied `candia.def` file 
+(requires root permissions, see instructions [here](https://sylabs.io/guides/3.0/user-guide/build_a_container.html)).
+
+The bulk of dependencies is managed through the conda packaging system. 
+The container simply encapsulates such an enviroment to ensure portability, but 
+a conda environment can also be [built](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file) 
+from scratch on the user's system with the provided `candia_env.yaml` specification file.
+Here, commands will be shown using the Singularity container.
+
+CANDIA was developed and used on POSIX systems: Ubuntu 18.04 and CentOS 7.8 Linux, 
+as well as macOS 10.13 (High Sierra), 10.14 (Mojave), 10.15 (Catalina).
+By using the Singularity container, CANDIA should be runnable on any OS that supports Singularity
+
+
 ### Third-party software
 
 These are either not distributed through package management archives or 
@@ -50,21 +80,6 @@ export MAYU_STANDALONE_PATH="$HOME/software/Mayu"
 Note: The `tpp` version `5.0.0-0` bioconda package that also includes Mayu is missing
 some of its libraries.
 
-
-## Installation
-
-We recommend using the Singularity image provided on Singularity Hub or Sylabs Cloud,
-which contains a conda environment with all CANDIA dependencies.
-Alternatively, the image may be built from the supplied `candia.def` file 
-(requires root permissions).
-
-To download the image from either location:
-
-* Singularity Hub: `singularity pull shub://fburic/candia`
-* Sylabs Cloud: `singularity pull library://fburic/candia/candia` 
-
-A conda environment can also be built from scratch using the provided `candia_env.yaml`
-specification file. Here, commands will be shown using the Singularity image.
 
 ## Usage
 
