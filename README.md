@@ -49,12 +49,16 @@ By using the Singularity container, CANDIA should be runnable on any OS that sup
 
 The Singularity image (and associated conda environment) currently includes:
 
-* Crux 3.2 (package `crux-toolkit`, `bioconda` channel) 
 * TPP 5.0.0 (package `tpp`, `bioconda` channel)
 * msproteomicstools (version 0.11.0, `bioconda` channel)
 
 These are either not distributed through package management archives or 
 those versions are broken. 
+
+#### Crux
+
+Crux 3.2 is known to work with CANDA. See installation instructions here http://crux.ms/
+The `crux` binary should be present in the `$PATH` environment variable.
 
 #### MS-GF+
 
@@ -204,7 +208,7 @@ singularity exec candia.sif \
 ```
 
 
-## 4. Generate tensor files for all slices
+### 4. Generate tensor files for all slices
 
 The slices are converted into NumPy (swath, rt, sample) tensors stored as `.npy` files. 
 The Snakefile will start the conversions for each slice in parallel and each such job may
@@ -237,7 +241,7 @@ singularity exec candia.sif \
 ```
 
 
-## 5. Run PARAFAC decomposition
+### 5. Run PARAFAC decomposition
 
 A decomposition is performed on each slice tensor, for all number of components `F`
 in the configured range. Multiple tensors are decomposed in parallel on each available GPU card.
@@ -254,7 +258,7 @@ Relevant pipeline config values:
 
 > Expected running time: 6 - 12 hours (depending on the GPU model)
 
-### Workstation
+#### Workstation
 
 The workstation command has the syntax:
 
@@ -266,7 +270,7 @@ Example running with Singularity (with 2 parallel decompositions per GPU):
 scripts/parafac/decompose_workstation.sh ${configfile} 2
 ```
 
-### HPC cluster
+#### HPC cluster
 
 The cluster command has the syntax:
 
@@ -284,7 +288,7 @@ If Singularity is not available, you can use the
 `decomopse_cluster_no_singularity.sh` script. 
 
 
-## 6. Index all PARAFAC models and components
+### 6. Index all PARAFAC models and components
 
 All PARAFAC models and components are indexed with a unique ID, as support for
 downstream tasks. These IDs, along with model filenames, are saved in two database
@@ -303,7 +307,7 @@ singularity exec candia.sif \
 ```
 
 
-## 7. Select Best Models
+### 7. Select Best Models
 
 Measure the unimodality of all PARAFAC components (for all models),
 then create a list of the best PARAFAC models, according to the unimodality criterion. 
@@ -333,7 +337,7 @@ singularity exec candia.sif \
 ```
 
 
-## 8. Identify proteins using Crux or MS-GF+
+### 8. Identify proteins using Crux or MS-GF+
 
 Configure which tool to use by setting the `analysis_pipeline` 
 variable to either `"crux"` or `"msgf+"` in the configuration file.
@@ -369,7 +373,7 @@ MSGF_JAR_PATH="$HOME/software/MSGFPlus/MSGFPlus.jar" singularity exec candia.sif
 ```
 
 
-## 9. Build library
+### 9. Build library
 
 > Expected running time: 2-5 min
 
@@ -386,7 +390,7 @@ singularity exec candia.sif \
 ```
 
 
-## 10. Quantify proteins with DIA-NN
+### 10. Quantify proteins with DIA-NN
 
 > Expected running time: 2-5 min per scan file
 
@@ -397,7 +401,7 @@ sbatch scripts/quantification/diann_slurm.sh --configfile ${configfile}
 ```
 
 
-## 11. De novo sequencing with Novor and DeepNovo
+### 11. De novo sequencing with Novor and DeepNovo
 
 Configure which tool to use through the configuration file
 
