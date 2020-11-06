@@ -25,6 +25,8 @@ dependencies:
   - pytest=5.2.2
   - pyyaml=5.1
   - tqdm=4.31.1
+  - crux-toolkit=3.2
+  - tpp=5.0.0
   - r=3.6.0
   - r-data.table
   - r-tidyverse
