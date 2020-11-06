@@ -49,16 +49,12 @@ By using the Singularity container, CANDIA should be runnable on any OS that sup
 
 The Singularity image (and associated conda environment) currently includes:
 
+* Crux 3.2 (package `crux-toolkit`, `bioconda` channel) 
 * TPP 5.0.0 (package `tpp`, `bioconda` channel)
 * msproteomicstools (version 0.11.0, `bioconda` channel)
 
-These are either not distributed through package management archives or 
-those versions are broken. 
-
-#### Crux
-
-Crux 3.2 is known to work with CANDA. See installation instructions here http://crux.ms/
-The `crux` binary should be present in the `$PATH` environment variable.
+The software below are either not distributed through package management archives or 
+those versions did not work with this setup.
 
 #### MS-GF+
 
@@ -389,15 +385,26 @@ singularity exec candia.sif \
     snakemake -s scripts/quantification/build_library.Snakefile --configfile ${configfile}
 ```
 
+**Note** This protocol will fail for the supplied toy test data.
+
 
 ### 10. Quantify proteins with DIA-NN
 
+To quantify proteins using the generated CANDIA library, a wrapper script is provided for running DIA-NN.
+
+Relevant pipeline config values:
+
+* `samples_mzml` - The DIA scan files
+* `quant_library` - The library file created by CANDIA
+* `database` - The target protein sequence FASTA database
+* `diann_out_dir` - Directory for DIA-NN output
+* `diann_report` - The filename of the TSV report output by CANDIA
+
 > Expected running time: 2-5 min per scan file
 
-TODO: expand, clarify
-
-```bash
-sbatch scripts/quantification/diann_slurm.sh --configfile ${configfile}
+```shell script
+singularity exec candia.sif \
+    snakemake -p --forceall -s scripts/quantification/diann.Snakefile --configfile ${configfile}
 ```
 
 
