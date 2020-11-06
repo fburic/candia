@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+set -e
 configfile=$1
 
 echo "Converting DIA scan files from mzML to CSV..."
