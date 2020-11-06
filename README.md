@@ -47,7 +47,7 @@ By using the Singularity container, CANDIA should be runnable on any OS that sup
 
 ### Third-party software
 
-The Singularity image (and associated conda environment) currently includes:
+The Singularity container (and associated conda environment) currently includes:
 
 * Crux 3.2 (package `crux-toolkit`, `bioconda` channel) 
 * TPP 5.0.0 (package `tpp`, `bioconda` channel)
@@ -417,6 +417,7 @@ singularity exec candia.sif \
 ### 10. Quantify proteins with DIA-NN
 
 To quantify proteins using the generated CANDIA library, a wrapper script is provided for running DIA-NN.
+The path to the `diann-linux` binary should be supplied to the Singularity container (see command below).
 
 Relevant pipeline config values:
 
@@ -429,7 +430,7 @@ Relevant pipeline config values:
 > Expected running time: 2-5 min per scan file
 
 ```shell script
-singularity exec candia.sif \
+SINGULARITYENV_PREPEND_PATH=$HOME/software/diann singularity exec candia.sif \
     snakemake -p -s scripts/quantification/diann.Snakefile --configfile ${configfile}
 ```
 
