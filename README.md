@@ -42,7 +42,7 @@ Here, commands will be shown using the Singularity container.
 
 CANDIA was developed and used on POSIX systems: Ubuntu 18.04 and CentOS 7.8 Linux, 
 as well as macOS 10.13 (High Sierra), 10.14 (Mojave), 10.15 (Catalina).
-By using the Singularity container, CANDIA should be runnable on any OS that supports Singularity
+By using the Singularity container, CANDIA should be runnable on any OS that supports Singularity.
 
 
 ### Third-party software
@@ -51,7 +51,7 @@ The Singularity image (and associated conda environment) currently includes:
 
 * Crux 3.2 (package `crux-toolkit`, `bioconda` channel) 
 * TPP 5.0.0 (package `tpp`, `bioconda` channel)
-* msproteomicstools (version 0.11.0, `bioconda` channel)
+* msproteomicstools 0.11.0 (`bioconda` channel)
 
 The software below are either not distributed through package management archives or 
 those versions did not work with this setup.
@@ -69,7 +69,23 @@ of the `.jar` location. Add it to your `.bashrc` or `.profile`. E.g.
 export MSGF_JAR_PATH="$HOME/software/MSGFPlus/MSGFPlus.jar"
 ```
 
+#### DIA-NN
+
+To perform quantification with the generated CANDIA library, we provide a wrapper script
+for the Linux version of DIA-NN. The the user may install `diann-linux` from https://github.com/vdemichev/DiaNN 
+(included in the "source code" package of each release).
+
+CANDIA is known to work with DIA-NN `1.7.4`
+
+The wrapper `scripts/quantification/diann.Snakefile` is simply a convenience script that supplies all necessary parameters,
+and ensures resuming on error.
+Once the library is created, the user may run DIA-NN independently of CANDIA or the Singularity workflow.
+
+
 #### Mayu
+
+Note: The `tpp` version `5.0.0-0` bioconda package that also includes Mayu may give missing error libraries.
+The user can install a stand-alone version as described here.
 
 Mayu is in the form of Perl scripts, so it only needs to be unzipped to be used.
 http://proteomics.ethz.ch/muellelu/web/LukasReiter/Mayu/
@@ -84,8 +100,6 @@ Add it to your `.bashrc` or `.profile`. E.g.
 export MAYU_STANDALONE_PATH="$HOME/software/Mayu"
 ```
 
-Note: The `tpp` version `5.0.0-0` bioconda package that also includes Mayu is missing
-some of its libraries.
 
 
 ## Usage
@@ -95,7 +109,12 @@ The shell script `candia` is provided to run all pipeline steps from preprocessi
 up to and including quantification library creation.
 However, *this script is still a work in progress* and is currently mainly used to test that the pipeline
 can execute on the user's system. 
-This can be done by running `./candia test/test_experiment/config/candia.yaml` from CANDIA's top level directory.
+This can be done by running the following from CANDIA's top level directory:
+
+```shell script
+./candia test/test_experiment/config/candia.yaml
+``` 
+
 The general syntax of this script is `candia EXPERIMENT_CONFIG_YAML`
 
 Currently, it is **recommended to run each stage at a time**, using the corresponding scripts. 
@@ -118,11 +137,18 @@ Partial support for CPU-only execution is implemented but the performance become
 
 ### 0. Configure CANDIA execution
 
-The execution of the pipeline is configured through a YAML file
-(`test_experiment/config/candia.yaml`). 
+The execution of the pipeline is **configured through a YAML file**
+(e.g. `test_experiment/config/candia.yaml`). 
 This configuration file specifies the location of input and intermediate files,
 as well as algorithm parameters. The paths are interpreted as relative to the 
 experiment directory `root_dir`.
+
+#### Good practice
+
+It is recommended to create **separate configuration files** for each parameter variation to be included in final results,
+rather than changing a single configuration file.
+Different configuration files may also be created for each stage of the pipeline.
+The important thing is to supply the relevant parameters to each script.
 
 Please read through the next steps to see which parameters are relevant at each step.
 A full configuration file is provided in the test experiment.
@@ -404,7 +430,7 @@ Relevant pipeline config values:
 
 ```shell script
 singularity exec candia.sif \
-    snakemake -p --forceall -s scripts/quantification/diann.Snakefile --configfile ${configfile}
+    snakemake -p -s scripts/quantification/diann.Snakefile --configfile ${configfile}
 ```
 
 
