@@ -16,31 +16,56 @@ From: continuumio/miniconda3
     touch /usr/lib64/libvglfaker.so
     touch /usr/bin/nvidia-smi
 
-    apt-get update && apt install -y --no-install-recommends locales libgomp1 libstdc++6 # build-essential
+    apt-get update && apt install -y --no-install-recommends libgomp1 libicu-dev
 
-	###
-	# Workaround: Get a conda version higher than 4.8.2
-	# Ref: https://github.com/conda/conda/issues/9681
-	###
+    ######
+    # R dependencies
+    ######
+    wget http://security.ubuntu.com/ubuntu/pool/main/g/gcc-10/gcc-10-base_10-20200411-0ubuntu1_amd64.deb
+    wget http://security.ubuntu.com/ubuntu/pool/main/g/gcc-10/libstdc++6_10-20200411-0ubuntu1_amd64.deb
+    wget http://security.ubuntu.com/ubuntu/pool/main/g/glibc/libc6_2.30-0ubuntu2_amd64.deb
+    wget http://security.ubuntu.com/ubuntu/pool/main/g/glibc/locales-all_2.30-0ubuntu2_amd64.deb
+    wget http://security.ubuntu.com/ubuntu/pool/main/i/icu/libicu66_66.1-2ubuntu2_amd64.deb
+    wget http://security.ubuntu.com/ubuntu/pool/main/t/tzdata/tzdata_2019c-3ubuntu1_all.deb
+    wget http://security.ubuntu.com/ubuntu/pool/main/g/gcc-10/libgcc-s1_10-20200411-0ubuntu1_amd64.deb
+
+    dpkg -i gcc-10-base_10-20200411-0ubuntu1_amd64.deb
+    dpkg -i libgcc-s1_10-20200411-0ubuntu1_amd64.deb
+    dpkg -i libstdc++6_10-20200411-0ubuntu1_amd64.deb
+    dpkg -i libc6_2.30-0ubuntu2_amd64.deb
+    dpkg -i locales-all_2.30-0ubuntu2_amd64.deb
+    dpkg -i tzdata_2019c-3ubuntu1_all.deb
+    dpkg -i libicu66_66.1-2ubuntu2_amd64.deb
+
+    ######
+    # Workaround: Get a conda version higher than 4.8.2
+    # Ref: https://github.com/conda/conda/issues/9681
+    ######
     /opt/conda/bin/conda update conda    
     /opt/conda/bin/conda env update --name base --file candia_env.yaml --prune
 
-	###
-	# Workaround: C libraries installed by conda as dependencies are a bit ouf date so, we use the system ones
-	# Ref: https://conda.continuum.narkive.com/nGVLDlYz/r-jupyter-cxxabi-version-not-found
-	###
-	mv /opt/conda/lib/libstdc++.so.6 /opt/conda/lib/libstdc++.so.6_conda
-	mv /opt/conda/lib/libgomp.so.1 /opt/conda/lib/libgomp.so.1_conda
-	ln -s /usr/lib/x86_64-linux-gnu/libstdc++.so.6 /opt/conda/lib/libstdc++.so.6
-	ln -s /usr/lib/x86_64-linux-gnu/libgomp.so.1 /opt/conda/lib/libgomp.so.1
+    ######
+    # Workaround: Use conda JDK package since Spark looks for older Java 1.8.0 in system dir
+    ######
+    mkdir -p /usr/lib/jvm/java-1.8.0-openjdk-amd64/bin
+    ln -s /opt/conda/bin/java /usr/lib/jvm/java-1.8.0-openjdk-amd64/bin/java
+
+    ######
+    # Workaround: C libraries installed by conda as dependencies are a bit ouf date so we use the system ones
+    # Ref: https://conda.continuum.narkive.com/nGVLDlYz/r-jupyter-cxxabi-version-not-found
+    ######
+    mv /opt/conda/lib/libstdc++.so.6 /opt/conda/lib/libstdc++.so.6_conda
+    mv /opt/conda/lib/libgomp.so.1 /opt/conda/lib/libgomp.so.1_conda
+    ln -s /usr/lib/x86_64-linux-gnu/libstdc++.so.6 /opt/conda/lib/libstdc++.so.6
+    ln -s /usr/lib/x86_64-linux-gnu/libgomp.so.1 /opt/conda/lib/libgomp.so.1
 
     # Avoid warnings about locale
-    echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen
-    locale-gen && update-locale LANG=en_US.UTF-8
+    # echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen
+    # locale-gen && update-locale LANG=en_US.UTF-8
 
 
 %environment
-	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/conda/lib
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/conda/lib
 
 
 %runscript
