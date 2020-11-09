@@ -16,6 +16,14 @@ The repository will be updated but the `submission` revision is available as a s
 at the time of manuscript submission.
 
 
+## Hardware Requirements
+
+For the decomposition, **an NVIDIA GPU is required**. Models known to perform well: K80, GP100, and V100.
+Minimum GPU RAM: 8 GB. Recommended: >= 16 GB.
+
+The preprocessing and downstream stages should perform acceptably with as few as 8 CPUs at 2.5 GHz and 16 GB RAM.
+Recommended: >= 16 CPUs at >= 3 GHz, and >= 32 GB RAM.
+
 ## Installation
 
 The current CANDIA distribution is split in two components: 
