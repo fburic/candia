@@ -24,6 +24,11 @@ Minimum GPU RAM: 8 GB. Recommended: >= 16 GB.
 The preprocessing and downstream stages should perform acceptably with as few as 8 CPUs at 2.5 GHz and 16 GB RAM.
 Recommended: >= 16 CPUs at >= 3 GHz, and >= 32 GB RAM.
 
+- [Installation](#installation)
+    + [Third-party software](#third-party-software)
+- [Usage](#usage)
+
+
 ## Installation
 
 The current CANDIA distribution is split in two components: 
