@@ -39,13 +39,12 @@ The current CANDIA distribution is split in two components:
 * the scripts that make up the pipeline (clone this repo to fetch them)
 * a Singularity container which includes all dependencies for running CANDIA (Python libraries and other necessary third-party software)
 
-We recommend using the Singularity container provided on Singularity Hub or Sylabs Cloud.
-(There is no difference in contents, only Singularity version used to build the containers).
-To download the container from either location, first [install](https://sylabs.io/guides/3.0/user-guide/quick_start.html) 
-Singularity 3.x on your system, then pull the container with either command:
+We recommend using the Singularity container provided on Singularity Hub (built with Singularity version 3.4.2). 
+The container should be placed inside the cloned CANDIA repo.
+To use the container:
 
-* Singularity Hub (Singularity 3.4.2): `singularity pull shub://fburic/candia`
-* Sylabs Cloud (Singularity 3.4.0): `singularity pull library://fburic/candia/candia` 
+1. [Install](https://sylabs.io/guides/3.0/user-guide/quick_start.html) Singularity 3.x on your system
+2. Pull the container with the command `singularity pull candia.sif shub://fburic/candia:def` This will download the container `candia.sif` (4.4 GB) inside the current working directory. The main `candia` script assumes `candia.sif` is located in the CANDIA repo.
 
 Alternatively, the container may be built from the supplied `candia.def` file 
 (requires root permissions, see instructions [here](https://sylabs.io/guides/3.0/user-guide/build_a_container.html)).
@@ -170,7 +169,8 @@ Please read through the next steps to see which parameters are relevant at each 
 A full configuration file is provided in the test experiment.
 More information may be found in the CANDIA article Supplemental Information.
 
-The scripts are **expected to be run from the CANDIA top-level directory**.
+The scripts are **expected to be run from inside the CANDIA repo** 
+(Thus first `cd candia` after clonning).
 
 
 ### 1. Convert DIA scan files from mzML to CSV
