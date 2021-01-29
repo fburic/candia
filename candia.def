@@ -23,7 +23,7 @@ From: continuumio/miniconda3
     ######
     wget http://security.ubuntu.com/ubuntu/pool/main/g/gcc-10/gcc-10-base_10-20200411-0ubuntu1_amd64.deb
     wget http://security.ubuntu.com/ubuntu/pool/main/g/gcc-10/libstdc++6_10-20200411-0ubuntu1_amd64.deb
-    wget http://security.ubuntu.com/ubuntu/pool/main/g/glibc/libc6_2.30-0ubuntu2_amd64.deb
+    wget http://security.ubuntu.com/ubuntu/pool/main/g/glibc/libc6_2.31-0ubuntu9.2_amd64.deb
     wget http://security.ubuntu.com/ubuntu/pool/main/g/glibc/locales-all_2.30-0ubuntu2_amd64.deb
     wget http://security.ubuntu.com/ubuntu/pool/main/i/icu/libicu66_66.1-2ubuntu2_amd64.deb
     wget http://security.ubuntu.com/ubuntu/pool/main/t/tzdata/tzdata_2019c-3ubuntu1_all.deb
@@ -32,7 +32,7 @@ From: continuumio/miniconda3
     dpkg -i gcc-10-base_10-20200411-0ubuntu1_amd64.deb
     dpkg -i libgcc-s1_10-20200411-0ubuntu1_amd64.deb
     dpkg -i libstdc++6_10-20200411-0ubuntu1_amd64.deb
-    dpkg -i libc6_2.30-0ubuntu2_amd64.deb
+    dpkg -i libc6_2.31-0ubuntu9.2_amd64.deb
     dpkg -i locales-all_2.30-0ubuntu2_amd64.deb
     dpkg -i tzdata_2019c-3ubuntu1_all.deb
     dpkg -i libicu66_66.1-2ubuntu2_amd64.deb
