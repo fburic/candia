@@ -132,6 +132,10 @@ This can be done by running the following from CANDIA's top level directory:
 
 The general syntax of this script is `candia EXPERIMENT_CONFIG_YAML`
 
+**Note** The test experiment will only run properly up to and including the decomposition step.
+As this is the most complex part of the pipeline, this should guarantee that your installation
+works for real data. A more complete test suite (more realistic data and unit tests) is planned.
+
 Currently, it is **recommended to run each stage at a time**, using the corresponding scripts. 
 Step-by-step instruction are listed here using the toy data files provided in this repo. 
 These data files are primarily meant to test the pipeline is working properly.
