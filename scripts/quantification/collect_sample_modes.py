@@ -49,6 +49,32 @@ def main():
     feather.write_feather(sample_modes, args.output_file)
     logger.info('Wrote %s' % str(args.output_file))
 
+    save_spectra_and_sample_mode_values(args, sample_modes)
+
+
+def save_spectra_and_sample_mode_values(args, sample_modes):
+    """
+    Get the correspondence between decomposed spectra ID (`<scan>` in the mzXML file)
+    to the `sample_num` of their corresponding sample (abundance) mode,
+
+    then save it (as a CSV) to config['spectra_with_sample_abundance_file']
+    in the experiment directory,
+    or 'spectra_with_sample_abundance.csv' if the former is not specified
+    """
+    spectrum_index = feather.read_feather(args.config['spectrum_index'])
+    spectra_with_samples = pd.merge(sample_modes,
+                                    spectrum_index,
+                                    left_on = ['model_id', 'comp_num'],
+                                    right_on = ['model_id', 'spectrum_num'])
+    output_fname = args.config.get('spectra_with_sample_abundance_file',
+                                   'spectra_with_sample_abundance.csv')
+
+    spectra_with_samples[['scan', 'sample_num', 'abundance']].to_csv(
+        args.experiment_dir / output_fname, index=False
+    )
+    logger.info('Wrote spectrum-sample abundance values to: ' +
+                str(args.experiment_dir / output_fname))
+
 
 def load_model_sample_mode_from_metainfo(model_info):
     model_path = model_info['path']

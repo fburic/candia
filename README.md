@@ -379,7 +379,32 @@ singularity exec candia.sif \
 ```
 
 
-### 8. Identify proteins using Crux or MS-GF+
+### 8. (Optional) Collect the abundance (sample mode value) of decomposed spectra
+
+Should it be relevant for downstream analyses, the sample mode values (relative abundances)
+of each of the decomposed spectra can be collected with the script below.
+
+This will write the following files to the experiment directory:
+
+- `sample_modes_best_models.feather` : The sample mode of the best mdoels, as a tabular file
+- A CSV file specified in the pipeline config file as `spectra_with_sample_abundance_file` 
+  containing the spetrum ID - sample abundance correspondence. 
+  The spectrum ID is the same as the `<scan>` attribute ID in the CANDIA output mzXML file,
+  so it can be used to match against output from downstream programs. 
+
+```shell script
+singularity exec candia.sif \
+  python scripts/quantification/collect_sample_modes.py --config ${configfile}
+```
+
+> **Developer note**:
+  The `feather` format (a table) can be read with the 
+  Python [pyarrow library](https://arrow.apache.org/docs/python/generated/pyarrow.feather.read_feather.html)
+  or the R [arrow library](https://arrow.apache.org/docs/r/reference/read_feather.html)
+
+
+
+### 9. Identify proteins using Crux or MS-GF+
 
 Configure which tool to use by setting the `analysis_pipeline` 
 variable to either `"crux"` or `"msgf+"` in the configuration file.
@@ -415,7 +440,7 @@ MSGF_JAR_PATH="$HOME/software/MSGFPlus/MSGFPlus.jar" singularity exec candia.sif
 ```
 
 
-### 9. Build library
+### 10. Build library
 
 > Expected running time: 2-5 min
 
@@ -434,7 +459,7 @@ singularity exec candia.sif \
 **Note** This protocol will fail for the supplied toy test data.
 
 
-### 10. Quantify proteins with DIA-NN
+### 11. Quantify proteins with DIA-NN
 
 To quantify proteins using the generated CANDIA library, a wrapper script is provided for running DIA-NN.
 The path to the `diann-linux` binary should be supplied to the Singularity container (see command below).
@@ -455,7 +480,7 @@ SINGULARITYENV_PREPEND_PATH=$HOME/software/diann singularity exec candia.sif \
 ```
 
 
-### 11. De novo sequencing with Novor and DeepNovo
+### 12. De novo sequencing with Novor and DeepNovo
 
 Configure which tool to use through the configuration file
 

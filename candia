@@ -44,9 +44,15 @@ singularity exec candia.sif \
 echo "done."
 
 
-echo "Selecting best models"
+echo "Selecting best models..."
 singularity exec candia.sif \
     python scripts/parafac/collect_time_mode_values.py -c ${configfile}
+echo "done."
+
+
+echo "Collecting sample mode values of decomposed spectra..."
+singularity exec candia.sif \
+    python scripts/quantification/collect_sample_modes.py --config ${configfile}
 echo "done."
 
 
