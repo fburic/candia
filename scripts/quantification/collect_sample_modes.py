@@ -70,10 +70,10 @@ def save_spectra_and_sample_mode_values(args, sample_modes):
                                    'spectra_with_sample_abundance.csv')
 
     spectra_with_samples[['scan', 'sample_num', 'abundance']].to_csv(
-        args.experiment_dir / output_fname, index=False
+        args.root_dir / output_fname, index=False
     )
     logger.info('Wrote spectrum-sample abundance values to: ' +
-                str(args.experiment_dir / output_fname))
+                str(args.root_dir / output_fname))
 
 
 def load_model_sample_mode_from_metainfo(model_info):
@@ -98,7 +98,7 @@ def load_model_sample_mode_from_metainfo(model_info):
 
 
 def get_params_for_best_models(args):
-    best_models_fname = args.experiment_dir / args.config['best_models']
+    best_models_fname = args.root_dir / args.config['best_models']
     if not path.exists(best_models_fname):
         logger.error('Stopping: Could not find file listing best PARAFAC models: ' +
                      str(best_models_fname))
@@ -141,8 +141,8 @@ def get_args():
     if args.config['analysis_pipeline'] not in ['crux', 'tpp', 'msgf+']:
         logger.error("Analytic pipeline " + args.config['analysis_pipeline'] + ' not supported')
         raise Exception('Invalid pipeline config value: analysis_pipeline = ' + args.config['analysis_pipeline'])
-    args.experiment_dir = Path(args.config['model_index']).parent
-    args.output_file = args.experiment_dir / f'sample_modes_{args.model_set}_models.feather'
+    args.root_dir = Path(args.config['root_dir'])
+    args.output_file = args.root_dir / f'sample_modes_{args.model_set}_models.feather'
     return args
 
 

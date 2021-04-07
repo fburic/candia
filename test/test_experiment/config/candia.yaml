@@ -39,7 +39,7 @@ msgf_threads: 18
 
 decomp_measures: "results/parafac_decomp_measures.feather"
 time_modes_values: "results/time_mode_values_all_models.feather"
-spectra_with_sample_abundance_file: "spectra_with_sample_abundance.csv"
+spectra_with_sample_abundance_file: "results/spectra_with_sample_abundance.csv"
 
 intensity_lower_percentage_cutoff: 1
 
