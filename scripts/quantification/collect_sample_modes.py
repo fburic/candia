@@ -21,8 +21,8 @@ _this_filename = inspect.getframeinfo(inspect.currentframe()).filename
 _this_path = Path(_this_filename).parent.resolve()
 sys.path.append(str(_this_path.parent))
 
-from ..util import msproc
-from ..parafac import models
+from util import msproc
+from parafac import models
 
 logging.basicConfig(format=msproc.LOG_FORMAT, level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -98,7 +98,12 @@ def load_model_sample_mode_from_metainfo(model_info):
 
 
 def get_params_for_best_models(args):
-    model_params = pd.read_csv(args.config['best_models'])
+    best_models_fname = args.experiment_dir / args.config['best_models']
+    if not path.exists(best_models_fname):
+        logger.error('Stopping: Could not find file listing best PARAFAC models: ' +
+                     str(best_models_fname))
+        sys.exit(1)
+    model_params = pd.read_csv(best_models_fname)
     model_params['path'] = model_params.apply(partial(_model_path_from_params,
                                                       args.config['slices_location']),
                                               axis='columns')
